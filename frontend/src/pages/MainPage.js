@@ -3,20 +3,36 @@ import Map from "../components/Map";
 
 const API_URL = 'http://localhost:5000';
 
-const MainPage = ({ setCurrentPage }) => {
+const MainPage = ({ setCurrentPage, mainData, setMainData, mainConfig, loading, setLoading }) => {
+  const [reoptimizeData, setReoptimizeData] = useState(null);
+
   const [placesData, setPlacesData] = useState(null);
   const [mapData, setMapData] = useState(null);
   const [scheduleData, setScheduleData] = useState(null);
   const [routeData, setRouteData] = useState(null);
+  const [positionIndex, setPositionIndex] = useState(0);
 
   const [userLocation, setUserLocation] = useState([0, 0]);
-
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     getUserLocation();
     fetchTripData();
   }, []);
+
+  useEffect(() => {
+    if (mainData) {
+      setScheduleData(mainData.schedule);
+      setRouteData(mainData.route);
+    }
+  }, [mainData]);
+
+  useEffect(() => {
+    if (reoptimizeData) {
+      setScheduleData(reoptimizeData.step2_reoptimize.schedule);
+      setRouteData(reoptimizeData.step2_reoptimize.route_ids);
+      setPositionIndex(reoptimizeData.summary.new_position);
+    }
+  }, [reoptimizeData]);
 
   const getUserLocation = () => {
     if (navigator.geolocation) {
@@ -34,6 +50,7 @@ const MainPage = ({ setCurrentPage }) => {
   }
 
   const fetchTripData = () => {
+
     fetch(API_URL + '/api/places', {
       method: 'GET',
       headers: {
@@ -52,41 +69,41 @@ const MainPage = ({ setCurrentPage }) => {
         console.error('Error fetching trip data:', error);
       });
 
-    fetch(API_URL + '/api/route', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
-      .then(async response => {
-        const responseText = await response.text();
-        const parsedJson = JSON.parse(responseText.replace(/\bNaN\b/g, "null"));
-        return parsedJson;
-      })
-      .then(data => {
-        setRouteData(data.data);
-      })
-      .catch(error => {
-        console.error('Error fetching trip data:', error);
-      });
+    // fetch(API_URL + '/api/route', {
+    //   method: 'GET',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   }
+    // })
+    //   .then(async response => {
+    //     const responseText = await response.text();
+    //     const parsedJson = JSON.parse(responseText.replace(/\bNaN\b/g, "null"));
+    //     return parsedJson;
+    //   })
+    //   .then(data => {
+    //     setRouteData(data.data);
+    //   })
+    //   .catch(error => {
+    //     console.error('Error fetching trip data:', error);
+    //   });
 
-    fetch(API_URL + '/api/schedule', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
-      .then(async response => {
-        const responseText = await response.text();
-        const parsedJson = JSON.parse(responseText.replace(/\bNaN\b/g, "null"));
-        return parsedJson;
-      })
-      .then(data => {
-        setScheduleData(data.data.schedule);
-      })
-      .catch(error => {
-        console.error('Error fetching trip data:', error);
-      });
+    // fetch(API_URL + '/api/schedule', {
+    //   method: 'GET',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   }
+    // })
+    //   .then(async response => {
+    //     const responseText = await response.text();
+    //     const parsedJson = JSON.parse(responseText.replace(/\bNaN\b/g, "null"));
+    //     return parsedJson;
+    //   })
+    //   .then(data => {
+    //     setScheduleData(data.data.schedule);
+    //   })
+    //   .catch(error => {
+    //     console.error('Error fetching trip data:', error);
+    //   });
   }
 
   const handleNextPlace = () => {
@@ -105,6 +122,8 @@ const MainPage = ({ setCurrentPage }) => {
         // budget: budget,
         // preferred_categories: preferredCategories.filter(cat => cat !== ''),
         // must_visit: mustVisit.filter(place => place !== ''),
+        crossover_method: mainConfig.crossover,
+        algorithm: mainConfig.algorithm,
       }),
     })
       .then(async response => {
@@ -114,12 +133,15 @@ const MainPage = ({ setCurrentPage }) => {
       })
       .then(data => {
         console.log('Re-optimization result:', data.data);
-        fetchTripData();
+        setReoptimizeData(data.data);
+        // fetchTripData();
       })
       .catch(error => {
         console.error('Error during reoptimization:', error);
-        setLoading(false);
       })
+      .finally(() => {
+        setLoading(false);
+      });
   }
 
   const handleEndTrip = () => {
@@ -155,9 +177,13 @@ const MainPage = ({ setCurrentPage }) => {
   return (
     <div className="px-3 pt-4 pb-8 flex flex-col min-h-screen bg-gray-100">
       {/* <div className="text-2xl font-bold text-center tracking-tight leading-tight">Dynamic Tourism Attraction Route</div> */}
-      <button onClick={() => setCurrentPage(0)} className="w-fit px-3 py-2 font-semibold text-md tracking-tight">{'< '}Back</button>
+      <div className="flex flex-row justify-between items-center w-full">
+        <button onClick={() => setCurrentPage(0)} className="w-fit px-3 py-2 font-semibold text-md tracking-tight">{'< '}Back</button>
+        <button onClick={() => fetchTripData()} className="w-fit px-3 py-2 font-semibold text-md tracking-tight">Refresh</button>
+      </div>
       <div className="mt-3 w-full aspect-square bg-white border border-gray-200 shadow-xl shadow-gray-300 rounded-lg overflow-hidden flex justify-center items-center">
-        <Map places={placesData} center={userLocation} currentLocation={userLocation} />
+        {/* <Map places={placesData ?? []} visitedPlaceIds={routeData?.visited_places?.map(place => place.id) ?? []} remainingPlaceIds={routeData?.remaining_places?.map(place => place.id) ?? []} currentUserLocation={userLocation} /> */}
+        <Map places={placesData ?? []} visitedPlaceIds={placesData ? routeData?.slice(0, positionIndex + 1) ?? [] : []} remainingPlaceIds={placesData ? routeData?.slice(positionIndex + 1) ?? [] : []} currentUserLocation={userLocation} />
       </div>
       <div className="mt-6 px-4 py-4 w-full bg-white shadow-lg rounded-lg">
         <div className="text-md font-bold tracking-tight">Trip Status</div>
@@ -165,12 +191,12 @@ const MainPage = ({ setCurrentPage }) => {
           <div className="flex flex-row items-center space-x-3">
             <div className="w-1/2 flex flex-col">
               <div className="text-xs">Current location</div>
-              <div className="font-semibold text-xs">Malioboro</div>
+              <div className="font-semibold text-xs">{ placesData?.[(routeData?.[positionIndex] ?? 0) - 1]?.name ?? '' }</div>
             </div>
-            <div className="w-1/4 flex flex-col">
-              <div className="text-xs">Weather</div>
-              <div className="font-semibold text-xs">Sunny</div>
-            </div>
+            {/* <div className="w-1/4 flex flex-col">
+              <div className="text-xs">Weather Condition</div>
+              <div className="font-semibold text-xs">15000</div>
+            </div> */}
             <div className="w-1/4 flex flex-col">
               <div className="text-xs">Scheduled</div>
               <div className="font-semibold text-xs">10:00 AM</div>
@@ -179,12 +205,12 @@ const MainPage = ({ setCurrentPage }) => {
           <div className="flex flex-row items-center space-x-3">
             <div className="w-1/2 flex flex-col">
               <div className="text-xs">Next destination</div>
-              <div className="font-semibold text-xs">Candi Borobudur</div>
+              <div className="font-semibold text-xs">{ (positionIndex + 1 >= (routeData?.length ?? 0)) ? '-' : placesData?.[(routeData?.[positionIndex + 1] ?? 0) - 1]?.name ?? '' }</div>
             </div>
-            <div className="w-1/4 flex flex-col">
-              <div className="text-xs">Weather</div>
-              <div className="font-semibold text-xs">Sunny</div>
-            </div>
+            {/* <div className="w-1/4 flex flex-col">
+              <div className="text-xs">Entrance Fee</div>
+              <div className="font-semibold text-xs">15000</div>
+            </div> */}
             <div className="w-1/4 flex flex-col">
               <div className="text-xs">Scheduled</div>
               <div className="font-semibold text-xs">10:00 AM</div>
@@ -193,7 +219,7 @@ const MainPage = ({ setCurrentPage }) => {
         </div>
         <div className="mt-5 flex flex-row justify-between items-center space-x-3">
           <button onClick={() => handleEndTrip()} className="px-6 py-2 w-1/2 rounded-md bg-white border border-red-500 flex justify-center items-center text-red-500 text-sm">End Trip</button>
-          <button onClick={() => handleNextPlace()} className="px-6 py-2 w-1/2 rounded-md bg-blue-500 border border-blue-500 flex justify-center items-center text-white text-sm">Next Destination</button>
+          <button onClick={() => handleNextPlace()} disabled={positionIndex >= (routeData?.length ?? 0) - 1} className="px-6 py-2 w-1/2 rounded-md bg-blue-500 disabled:bg-blue-300 border border-blue-500 disabled:border-blue-300 flex justify-center items-center text-white text-sm">Next Destination</button>
         </div>
       </div>
       <div className="mt-6 px-4 py-4 w-full bg-white shadow-lg rounded-lg">

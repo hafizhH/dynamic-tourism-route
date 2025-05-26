@@ -2,16 +2,27 @@ import { useEffect, useState } from "react";
 
 const API_URL = 'http://localhost:5000';
 
-const StartPage = ({ setCurrentPage }) => {
-  const [loading, setLoading] = useState(false);
+const defaultParams = {
+  startTime: '08:00',
+  endTime: '20:00',
+  lunchTime: '12:00',
+  maxPlaces: 5,
+  crossover: 'original',
+  algorithm: 'simple',
+}
 
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
+const StartPage = ({ setCurrentPage, mainData, setMainData, setMainConfig, loading, setLoading }) => {
+
+  const [startTime, setStartTime] = useState(defaultParams.startTime);
+  const [endTime, setEndTime] = useState(defaultParams.endTime);
+  const [lunchTime, setLunchTime] = useState(defaultParams.lunchTime);
   const [startLocation, setStartLocation] = useState(null);
   const [budget, setBudget] = useState(0);
-  const [maxPlaces, setMaxPlaces] = useState(0);
+  const [maxPlaces, setMaxPlaces] = useState(defaultParams.maxPlaces);
   const [mustVisit, setMustVisit] = useState([]);
   const [preferredCategories, setPreferredCategories] = useState([]);
+  const [crossover, setCrossover] = useState(defaultParams.crossover);
+  const [algorithm, setAlgorithm] = useState(defaultParams.algorithm);
 
   const [placesData, setPlacesData] = useState(null);
 
@@ -36,31 +47,60 @@ const StartPage = ({ setCurrentPage }) => {
   }
 
   const handleStart = () => {
-    console.log('Starting trip with preferences:', {
+    const preferences = {
       startTime,
       endTime,
+      lunchTime,
       startLocation,
       maxPlaces,
       budget,
       preferredCategories,
-      mustVisit
-    });
+      mustVisit,
+      crossover,
+      algorithm,
+    }
+    console.log('Starting trip with preferences:', preferences);
+    setMainConfig(preferences);
 
     setLoading(true);
 
+    fetch(API_URL + '/api/end-journey', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+      .then(async response => {
+        const responseText = await response.text();
+        const parsedJson = JSON.parse(responseText.replace(/\bNaN\b/g, "null"));
+        return parsedJson;
+      })
+      .then(data => {
+        optimize();
+      })
+      .catch(error => {
+        console.error('Error during ending trip:', error);
+        setLoading(false);
+      })
+  }
+
+  const optimize = () => {
     fetch(API_URL + '/api/optimize', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // start_time: startTime,
-        // end_time: endTime,
+        start_time: startTime,
+        end_time: endTime,
+        lunch_time: lunchTime,
         start_location: startLocation,
         max_places: maxPlaces,
+        must_visit: mustVisit.filter(place => place !== ''),
         budget: budget,
         preferred_categories: preferredCategories.filter(cat => cat !== ''),
-        must_visit: mustVisit.filter(place => place !== ''),
+        crossover_method: crossover,
+        algorithm: algorithm,
       }),
     })
       .then(async response => {
@@ -70,14 +110,17 @@ const StartPage = ({ setCurrentPage }) => {
       })
       .then(data => {
         console.log('Optimization result:', data.data);
+        setMainData(data.data);
         setCurrentPage(1);
-        setLoading(false);
       })
       .catch(error => {
         console.error('Error during optimization:', error);
-        setLoading(false);
       })
+      .finally(() => {
+        setLoading(false);
+      });
   }
+
 
   const handleCategoryChange = (event) => {
     const { value, checked } = event.target;
@@ -103,23 +146,36 @@ const StartPage = ({ setCurrentPage }) => {
 
   return (
     <div className="px-4 py-8 min-h-screen flex flex-col justify-center items-center bg-gray-100">
-      <div className="text-3xl font-bold leading-tight">Dynamic Tourism Attraction Routing</div>
+      <div className="text-3xl font-bold leading-tight tracking-tight">Dynamic Tourism Attraction Routing App</div>
       <div className="mt-5 px-4 py-4 bg-white rounded-xl shadow-lg w-full flex flex-col">
         <div className="font-bold text-lg">Preferences</div>
-        <div className="mt-3.5 w-full">
-          <div className="text-sm font-medium">Trip Time</div>
-          <div className="mt-1.5 flex flex-row">
-            <input onChange={(e) => setStartTime(e.target.value)}
-              type="time"
-              className="px-3 py-2 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Start time"
-            />
-            <span className="mx-3 self-center text-gray-500">to</span>
-            <input onChange={(e) => setEndTime(e.target.value)}
-              type="time"
-              className="px-3 py-2 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="End time"
-            />
+        <div className="mt-3.5 w-full flex flex-row">
+          <div className="flex-1 flex flex-col">
+            <div className="text-sm font-medium">Trip Time</div>
+            <div className="mt-1.5 flex flex-row">
+              <input onChange={(e) => setStartTime(e.target.value)}
+                type="time" defaultValue={defaultParams.startTime}
+                className="px-1 py-2 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="Start time"
+              />
+              <span className="mx-2 self-center text-sm text-gray-500">to</span>
+              <input onChange={(e) => setEndTime(e.target.value)}
+                type="time" defaultValue={defaultParams.endTime}
+                className="px-1 py-2 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="End time"
+              />
+            </div>
+          </div>
+          <div className="ml-auto w-fit flex flex-col">
+            <div className="text-sm font-medium">Lunch Time</div>
+            <div className="mt-1.5 w-fit flex flex-row">
+              <input onChange={(e) => setLunchTime(e.target.value)}
+                type="time"
+                defaultValue={defaultParams.lunchTime}
+                className="px-1 py-2 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="Lunch time"
+              />
+            </div>
           </div>
         </div>
         <div className="mt-3.5 w-full">
@@ -149,6 +205,8 @@ const StartPage = ({ setCurrentPage }) => {
           <div className="text-sm font-medium">Max. places to visit</div>
           <input onChange={(e) => setMaxPlaces(parseInt(e.target.value))}
             type="number"
+            min="1"
+            defaultValue={defaultParams.maxPlaces}
             placeholder="Max. places to visit"
             className="mt-1.5 w-full px-3 py-2.5 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
@@ -191,6 +249,31 @@ const StartPage = ({ setCurrentPage }) => {
               <input type="checkbox" value="Belanja" className="accent-blue-500" onChange={handleCategoryChange} />
               <span className="text-sm">Belanja</span>
             </label>
+          </div>
+          <div className="mt-4 flex flex-col">
+            <div className="font-semibold tracking-tight">Routing Algorithm Options</div>
+            <div className="mt-1 flex flex-col">
+              <select
+                className="mt-1.5 w-full px-3 py-2.5 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                defaultValue={defaultParams.crossover}
+                onChange={(e) => setCrossover(e.target.value)}
+              >
+                <option value="" disabled>Select crossover method</option>
+                <option value={'original'}>One-point crossover</option>
+                <option value={'order'}>Order crossover</option>
+                <option value={'cycle'}>Cycle crossover</option>
+              </select>
+              <select
+                className="mt-1.5 w-full px-3 py-2.5 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                defaultValue={defaultParams.algorithm}
+                onChange={(e) => setAlgorithm(e.target.value)}
+              >
+                <option value="" disabled>Select algorithm</option>
+                <option value={'simple'}>Generational GA</option>
+                <option value={'mu_plus_lambda'}>Steady-state GA (μ + λ)</option>
+                <option value={'mu_comma_lambda'}>Evolutionary Strategy (μ, λ)</option>
+              </select>
+            </div>
           </div>
           <button onClick={() => handleStart()} disabled={loading} className="mt-6 px-5 py-2.5 w-full bg-blue-500 disabled:bg-blue-300 rounded-lg font-semibold text-md text-white">Start Trip</button>
         </div>
