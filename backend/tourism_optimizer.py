@@ -485,7 +485,7 @@ class TourismOptimizer:
         )
 
         self.current_route = list(hof[0])
-        self.current_position = 0
+        # self.current_position = 0
         self.current_schedule = self.create_schedule()
 
         # Extract evolution data
@@ -531,6 +531,13 @@ class TourismOptimizer:
         """
         Enhanced reoptimize dengan previous route tracking
         """
+
+        # ✅ DEBUG: Tambahkan di AWAL method
+        print(f"🔍 DEBUG reoptimize START:")
+        print(f"   Position BEFORE reoptimize: {self.current_position}")
+        print(f"   Route BEFORE reoptimize: {self.current_route}")
+        print(f"   Route names BEFORE: {[self.df_places.iloc[id-1]['name'] for id in self.current_route] if self.current_route else []}")
+
         # ✅ Save current route as previous before reoptimization
         self.save_current_as_previous()
         
@@ -580,13 +587,24 @@ class TourismOptimizer:
                 new_preferences, 
                 crossover_method=crossover_method,
                 algorithm=algorithm,
-                verbose=False
+                verbose=True
             )
             
             # Combine with visited places
             self.current_route = visited_places + result['route']
             self.current_schedule = self.create_schedule()
             
+            # ✅ TAMBAH LINE INI:
+            self.current_position = len(visited_places) - 1  # Stay at last visited place
+            # ✅ DEBUG: Tambahkan SETELAH route update
+            print(f"🔍 DEBUG reoptimize AFTER:")
+            print(f"🔍 Position AFTER reoptimize: {self.current_position}")
+            print(f"🔍 Route AFTER reoptimize: {self.current_route}")
+            print(f"🔍 Route names AFTER: {[self.df_places.iloc[id-1]['name'] for id in self.current_route]}")
+            print(f"🔍 Visited places: {visited_places}")
+            print(f"🔍 New places from GA: {result['route']}")
+
+
             # ✅ Get comparison with previous route
             route_comparison = self.compare_with_previous()
             
@@ -621,7 +639,10 @@ class TourismOptimizer:
         else:
             # No reoptimization needed
             route_comparison = self.compare_with_previous()
-            
+            print("🚫 No GA execution needed:")
+            print(f"🚫Max places: {new_preferences['max_places']}")
+            print(f"🚫Budget remaining: {new_preferences['budget']}")
+            print("🚫Reason: Budget exhausted or no more places to add")
             result_data = {
                 'success': True,
                 'crossover_used': crossover_method,
@@ -1191,12 +1212,21 @@ class TourismOptimizer:
         return pd.DataFrame(schedule)
     
     def get_next_place(self):
+        print(f"🔍 DEBUG get_next_place:")
+        print(f"   Current position BEFORE: {self.current_position}")
+        print(f"   Current route: {self.current_route}")
+        print(f"   Route length: {len(self.current_route)}")
         """Menu 1: Lanjutkan ke tempat berikutnya"""
         if self.current_position < len(self.current_route) - 1:
             self.current_position += 1
+            print(f"   Current position AFTER: {self.current_position}")
+
             current_place_id = self.current_route[self.current_position]
             current_place = self.df_places.iloc[current_place_id - 1]
             
+            print(f"   Next place ID: {current_place_id}")
+            print(f"   Next place name: {current_place['name']}")
+
             result = {
                 'success': True,
                 'current_position': self.current_position,
