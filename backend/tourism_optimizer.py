@@ -61,22 +61,28 @@ class TourismOptimizer:
         
         current_cost = sum(self.df_places.iloc[id-1]['entrance_fee'] for id in self.current_route) if self.current_route else 0
         current_names = [self.df_places.iloc[id-1]['name'] for id in self.current_route] if self.current_route else []
-        
+        current_ids = [int(id) for id in self.current_route] if self.current_route else []  #
         comparison = {
             'previous_route': {
+                'route_ids': self.previous_route_data['route_ids'],
                 'route_names': self.previous_route_data['route_names'],
                 'total_cost': self.previous_route_data['total_cost'],
-                'timestamp': self.previous_route_data['timestamp']
+                'timestamp': self.previous_route_data['timestamp'],
+                'position': self.previous_route_data['position']
             },
             'current_route': {
+                'route_ids': current_ids,
                 'route_names': current_names,
                 'total_cost': current_cost
             },
             'changes': {
-                'route_changed': self.previous_route_data['route_ids'] != self.current_route,
+                'route_changed': self.previous_route_data['route_ids'] != current_ids,  # ✅ Compare by IDs
                 'cost_difference': current_cost - self.previous_route_data['total_cost'],
                 'places_added': [name for name in current_names if name not in self.previous_route_data['route_names']],
-                'places_removed': [name for name in self.previous_route_data['route_names'] if name not in current_names]
+                'places_removed': [name for name in self.previous_route_data['route_names'] if name not in current_names],
+                # ✅ Bonus: ID-based changes
+                'place_ids_added': [id for id in current_ids if id not in self.previous_route_data['route_ids']],
+                'place_ids_removed': [id for id in self.previous_route_data['route_ids'] if id not in current_ids]
             }
         }
         
