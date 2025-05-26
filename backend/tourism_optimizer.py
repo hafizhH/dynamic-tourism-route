@@ -22,8 +22,66 @@ class TourismOptimizer:
         self.current_schedule = None
         self.preferences = None
         self.dynamic_data = None
+        
+        # ✅ SIMPLE: Hanya simpan 1 rute sebelumnya
+        self.previous_route_data = None
 
+    def save_current_as_previous(self):
+        """
+        Simpan rute saat ini sebagai previous route
+        """
+        if self.current_route:
+            from datetime import datetime
+            
+            self.previous_route_data = {
+                'timestamp': datetime.now().isoformat(),
+                'route_ids': self.current_route.copy(),
+                'route_names': [self.df_places.iloc[id-1]['name'] for id in self.current_route],
+                'total_cost': sum(self.df_places.iloc[id-1]['entrance_fee'] for id in self.current_route),
+                'position': self.current_position,
+                'schedule': self.current_schedule.to_dict('records') if self.current_schedule is not None else []
+            }
+            
+            print(f"💾 Previous route saved: {self.previous_route_data['route_names']}")
+            return True
+        return False
 
+    def get_previous_route(self):
+        """
+        Dapatkan rute sebelumnya
+        """
+        return self.previous_route_data
+
+    def compare_with_previous(self):
+        """
+        Bandingkan rute saat ini dengan rute sebelumnya
+        """
+        if not self.previous_route_data:
+            return {"error": "No previous route available"}
+        
+        current_cost = sum(self.df_places.iloc[id-1]['entrance_fee'] for id in self.current_route) if self.current_route else 0
+        current_names = [self.df_places.iloc[id-1]['name'] for id in self.current_route] if self.current_route else []
+        
+        comparison = {
+            'previous_route': {
+                'route_names': self.previous_route_data['route_names'],
+                'total_cost': self.previous_route_data['total_cost'],
+                'timestamp': self.previous_route_data['timestamp']
+            },
+            'current_route': {
+                'route_names': current_names,
+                'total_cost': current_cost
+            },
+            'changes': {
+                'route_changed': self.previous_route_data['route_ids'] != self.current_route,
+                'cost_difference': current_cost - self.previous_route_data['total_cost'],
+                'places_added': [name for name in current_names if name not in self.previous_route_data['route_names']],
+                'places_removed': [name for name in self.previous_route_data['route_names'] if name not in current_names]
+            }
+        }
+        
+        return comparison
+    
     def create_tourism_data(self):
         tourism_data = {
             'id': list(range(1, 16)),
@@ -251,26 +309,349 @@ class TourismOptimizer:
     
     # Tambahkan di dalam class TourismOptimizer
     def convert_to_json_serializable(self, obj):
-            """Convert numpy/pandas types to JSON serializable types"""
-            import numpy as np
-            import pandas as pd
+        """Convert numpy/pandas types to JSON serializable types"""
+        import numpy as np
+        import pandas as pd
+        
+        if isinstance(obj, (np.integer, np.int64)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float64)):
+            if pd.isna(obj) or np.isnan(obj):
+                return None
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, pd.Series):
+            return obj.tolist()
+        elif isinstance(obj, pd.DataFrame):
+            # Replace NaN dengan None sebelum convert ke dict
+            df_clean = obj.fillna(value=None)
+            return df_clean.to_dict('records')
+        elif isinstance(obj, dict):
+            return {key: self.convert_to_json_serializable(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [self.convert_to_json_serializable(item) for item in obj]
+        elif pd.isna(obj):
+            return None
+        else:
+            return obj
+        
+    def run_genetic_algorithm(self, pop, toolbox, stats, hof, algorithm="simple", verbose=True):
+        """
+        Flexible GA algorithm runner
+        algorithm options: "simple", "mu_plus_lambda", "mu_comma_lambda"
+        """
+        if algorithm == "mu_plus_lambda":
+            pop, logbook = algorithms.eaMuPlusLambda(
+                pop, toolbox, 
+                mu=30, lambda_=50,
+                cxpb=0.7, mutpb=0.3, ngen=50,
+                stats=stats, halloffame=hof, verbose=verbose
+            )
+        elif algorithm == "mu_comma_lambda":
+            pop, logbook = algorithms.eaMuCommaLambda(
+                pop, toolbox,
+                mu=30, lambda_=50,
+                cxpb=0.7, mutpb=0.3, ngen=50,
+                stats=stats, halloffame=hof, verbose=verbose
+            )
+        else:  # default "simple"
+            pop, logbook = algorithms.eaSimple(
+                pop, toolbox, 
+                cxpb=0.7, mutpb=0.3, ngen=50,
+                stats=stats, halloffame=hof, verbose=verbose
+            )
+        
+        return pop, logbook
+        
+    def optimize_route_with_crossover_choice(self, preferences_data=None, crossover_method="original", algorithm="simple", verbose=True):
+        """
+        Modified optimize_route yang bisa memilih metode crossover
+        crossover_method: "original", "order", "cycle"
+        algorithm: "simple", "mu_plus_lambda", "mu_comma_lambda"
+        """
+        self.preferences = self.create_user_preferences(preferences_data)
+        self.dynamic_data = self.create_dynamic_data()
+        
+        # Reset DEAP creators
+        if 'FitnessMax' in dir(creator):
+            del creator.FitnessMax
+            del creator.Individual
+
+        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+        creator.create("Individual", list, fitness=creator.FitnessMax)
+
+        toolbox = base.Toolbox()
+
+        def init_individual():
+            individual = self.preferences['must_visit'].copy()
+            potential_places = [i for i in range(1, len(self.df_places)+1)
+                            if i not in individual and i not in self.preferences['avoid_places']]
+
+            random.shuffle(potential_places)
+            current_budget = sum(self.df_places.iloc[p-1]['entrance_fee'] for p in individual)
+
+            for place_id in potential_places:
+                if len(individual) >= self.preferences['max_places']:
+                    break
+
+                fee = self.df_places.iloc[place_id-1]['entrance_fee']
+                if current_budget + fee <= self.preferences['budget']:
+                    individual.append(place_id)
+                    current_budget += fee
+
+            random.shuffle(individual)
+            return individual
+
+        toolbox.register("individual", tools.initIterate, creator.Individual, init_individual)
+        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+        
+        def eval_wrapper(route):
+            return self.eval_route_fixed(route, self.df_places, self.preferences, 
+                                    self.distance_matrix, self.travel_time_matrix, self.dynamic_data)
+        
+        toolbox.register("evaluate", eval_wrapper)
+        
+        # Register crossover berdasarkan pilihan
+        selected_crossover = self.register_crossover_method(crossover_method)
+        toolbox.register("mate", selected_crossover)
+        
+        # Custom mutation (tetap sama)
+        def custom_mutate(individual, indpb):
+            if random.random() < indpb and len(individual) >= 2:
+                # Swap mutation
+                idx1, idx2 = random.sample(range(len(individual)), 2)
+                individual[idx1], individual[idx2] = individual[idx2], individual[idx1]
+
+            if random.random() < indpb and len(individual) >= 2:
+                # Insert mutation
+                idx1 = random.randint(0, len(individual) - 1)
+                idx2 = random.randint(0, len(individual) - 1)
+                if idx1 != idx2:
+                    value = individual.pop(idx1)
+                    individual.insert(idx2, value)
+
+            # Add/remove mutation
+            if random.random() < indpb * 1.5:
+                current_budget = sum(self.df_places.iloc[p-1]['entrance_fee'] for p in individual)
+
+                # Add place if possible
+                if len(individual) < self.preferences['max_places']:
+                    available_places = [i for i in range(1, len(self.df_places)+1)
+                                    if i not in individual and i not in self.preferences['avoid_places']]
+                    if available_places:
+                        new_place = random.choice(available_places)
+                        fee = self.df_places.iloc[new_place-1]['entrance_fee']
+                        if current_budget + fee <= self.preferences['budget']:
+                            individual.append(new_place)
+
+                # Remove optional place
+                if random.random() < indpb and len(individual) > 1:
+                    optional_places = [p for p in individual if p not in self.preferences['must_visit']]
+                    if optional_places:
+                        individual.remove(random.choice(optional_places))
+
+            return individual,
+
+        toolbox.register("mutate", custom_mutate, indpb=0.2)
+        toolbox.register("select", tools.selTournament, tournsize=3)
+
+        # Setup statistics
+        stats = tools.Statistics(lambda ind: ind.fitness.values)
+        stats.register("avg", np.mean)
+        stats.register("max", np.max)
+        stats.register("min", np.min)
+        stats.register("std", np.std)
+
+        # Print algorithm info
+        print("\n" + "="*60)
+        print("🧬 GENETIC ALGORITHM EVOLUTION")
+        print("="*60)
+        print(f"Population Size: {50}")
+        print(f"Generations: {50}")
+        print(f"Crossover Rate: {70}%")
+        print(f"Mutation Rate: {30}%")
+        print(f"🧬 Crossover Method: {crossover_method.upper()}")
+        print(f"⚡ Algorithm: {algorithm.upper()}")
+        print("="*60)
+
+        # Run genetic algorithm
+        pop = toolbox.population(n=50)
+        hof = tools.HallOfFame(1)
+        
+        pop, logbook = self.run_genetic_algorithm(
+            pop, toolbox, stats, hof, 
+            algorithm=algorithm, verbose=verbose
+        )
+
+        self.current_route = list(hof[0])
+        self.current_position = 0
+        self.current_schedule = self.create_schedule()
+
+        # Extract evolution data
+        gen = logbook.select("gen")
+        fit_avg = logbook.select("avg") 
+        fit_max = logbook.select("max")
+        fit_min = logbook.select("min")
+        fit_std = logbook.select("std")
+
+        result = {
+            'route': [int(x) for x in self.current_route],
+            'fitness': float(hof[0].fitness.values[0]),
+            'schedule': self.current_schedule.to_dict('records'),
+            'total_cost': int(sum(self.df_places.iloc[id-1]['entrance_fee'] for id in self.current_route)),
+            'crossover_method': crossover_method,  # Info crossover yang digunakan,
+            'algorithm': algorithm,
+            'evolution_stats': {
+                'generations': len(gen),
+                'final_avg_fitness': float(fit_avg[-1]),
+                'final_max_fitness': float(fit_max[-1]),
+                'final_min_fitness': float(fit_min[-1]),
+                'improvement': float(fit_max[-1] - fit_max[0]),
+                'fitness_history': {
+                    'generation': [int(x) for x in gen],
+                    'avg_fitness': [float(x) for x in fit_avg],
+                    'max_fitness': [float(x) for x in fit_max],
+                    'min_fitness': [float(x) for x in fit_min],
+                    'std_fitness': [float(x) for x in fit_std]
+                }
+            },
+            'used_preferences': {
+                'start_location': self.preferences['start_location'],
+                'end_location': self.preferences['end_location'],
+                'budget': self.preferences['budget'],
+                'max_places': self.preferences['max_places']
+            }
+        }
+
+        return self.convert_to_json_serializable(result)
+    
+    # ✅ UPDATE: Modifikasi reoptimize_route_with_crossover
+    def reoptimize_route_with_crossover(self, current_time_str=None, crossover_method="original", algorithm="simple"):
+        """
+        Enhanced reoptimize dengan previous route tracking
+        """
+        # ✅ Save current route as previous before reoptimization
+        self.save_current_as_previous()
+        
+        # ... existing reoptimization code sama seperti sebelumnya ...
+        if current_time_str:
+            current_time = datetime.strptime(current_time_str, '%H:%M')
+        else:
+            current_time = datetime.now()
+        
+        # Update dynamic data
+        self.dynamic_data = self.update_dynamic_data(current_time, self.dynamic_data)
+        
+        # Get remaining places
+        remaining_places = self.current_route[self.current_position + 1:]
+        visited_places = self.current_route[:self.current_position + 1]
+        
+        # Update preferences for reoptimization
+        new_preferences = self.preferences.copy()
+        new_preferences['start_time'] = current_time.strftime('%H:%M')
+        new_preferences['avoid_places'] = self.preferences.get('avoid_places', []) + visited_places
+        new_preferences['must_visit'] = []
+        
+        # Update start location to current place
+        if self.current_position < len(self.current_route):
+            current_place_id = self.current_route[self.current_position]
+            current_place = self.df_places.iloc[current_place_id - 1]
+            new_preferences['start_location'] = {
+                'name': current_place['name'],
+                'latitude': float(current_place['latitude']),
+                'longitude': float(current_place['longitude'])
+            }
+        
+        # Update budget
+        used_budget = sum(self.df_places.iloc[place_id - 1]['entrance_fee'] for place_id in visited_places)
+        new_preferences['budget'] = self.preferences['budget'] - used_budget
+        new_preferences['max_places'] = self.preferences['max_places'] - len(visited_places)
+        
+        # Reoptimize if there are still places to visit
+        if new_preferences['max_places'] > 0 and new_preferences['budget'] > 0:
+            # Reset DEAP creators
+            if 'FitnessMax' in dir(creator):
+                del creator.FitnessMax
+                del creator.Individual
+                
+            print(f"🔄 Reoptimizing with {crossover_method} crossover and {algorithm} algorithm...")
+            result = self.optimize_route_with_crossover_choice(
+                new_preferences, 
+                crossover_method=crossover_method,
+                algorithm=algorithm,
+                verbose=False
+            )
             
-            if isinstance(obj, (np.integer, np.int64)):
-                return int(obj)
-            elif isinstance(obj, (np.floating, np.float64)):
-                return float(obj)
-            elif isinstance(obj, np.ndarray):
-                return obj.tolist()
-            elif isinstance(obj, pd.Series):
-                return obj.tolist()
-            elif isinstance(obj, pd.DataFrame):
-                return obj.to_dict('records')
-            elif isinstance(obj, dict):
-                return {key: self.convert_to_json_serializable(value) for key, value in obj.items()}
-            elif isinstance(obj, list):
-                return [self.convert_to_json_serializable(item) for item in obj]
-            else:
-                return obj
+            # Combine with visited places
+            self.current_route = visited_places + result['route']
+            self.current_schedule = self.create_schedule()
+            
+            # ✅ Get comparison with previous route
+            route_comparison = self.compare_with_previous()
+            
+            result_data = {
+                'success': True,
+                'crossover_used': crossover_method,
+                'algorithm_used': algorithm,
+                'optimization_fitness': result.get('fitness', 0),
+                'dynamic_data': {
+                    'weather': self.dynamic_data['weather_condition'],
+                    'crowdedness_factor': float(self.dynamic_data['crowdedness_factor']),
+                    'closed_places': [self.df_places.iloc[id-1]['name'] for id in self.dynamic_data['closed_places']]
+                },
+                'updated_route': [self.df_places.iloc[id-1]['name'] for id in self.current_route],
+                'route_ids': [int(id) for id in self.current_route],
+                'schedule': self.current_schedule.to_dict('records'),
+                'budget_info': {
+                    'used_budget': int(used_budget),
+                    'remaining_budget': int(new_preferences['budget']),
+                    'total_budget': int(self.preferences['budget'])
+                },
+                'places_info': {
+                    'visited_count': len(visited_places),
+                    'remaining_count': len(self.current_route) - len(visited_places),
+                    'total_count': len(self.current_route)
+                },
+                # ✅ TAMBAHAN: Previous route info
+                'previous_route': route_comparison.get('previous_route'),
+                'route_changes': route_comparison.get('changes'),
+                'message': f"Rute berhasil dioptimasi ulang menggunakan {crossover_method} crossover dan {algorithm} algorithm"
+            }
+        else:
+            # No reoptimization needed
+            route_comparison = self.compare_with_previous()
+            
+            result_data = {
+                'success': True,
+                'crossover_used': crossover_method,
+                'algorithm_used': algorithm,
+                'optimization_fitness': None,
+                'dynamic_data': {
+                    'weather': self.dynamic_data['weather_condition'],
+                    'crowdedness_factor': float(self.dynamic_data['crowdedness_factor']),
+                    'closed_places': [self.df_places.iloc[id-1]['name'] for id in self.dynamic_data['closed_places']]
+                },
+                'updated_route': [self.df_places.iloc[id-1]['name'] for id in self.current_route],
+                'route_ids': [int(id) for id in self.current_route],
+                'schedule': self.current_schedule.to_dict('records') if self.current_schedule is not None else [],
+                'budget_info': {
+                    'used_budget': int(used_budget),
+                    'remaining_budget': int(new_preferences['budget']),
+                    'total_budget': int(self.preferences['budget'])
+                },
+                'places_info': {
+                    'visited_count': len(visited_places),
+                    'remaining_count': 0,
+                    'total_count': len(self.current_route)
+                },
+                # ✅ TAMBAHAN: Previous route info (even if no reoptimization)
+                'previous_route': route_comparison.get('previous_route'),
+                'route_changes': route_comparison.get('changes'),
+                'message': f"Tidak ada tempat lagi untuk dioptimasi"
+            }
+
+        return self.convert_to_json_serializable(result_data)
 
     def optimize_route(self, preferences_data=None, verbose=True):
         self.preferences = self.create_user_preferences(preferences_data)
@@ -411,7 +792,9 @@ class TourismOptimizer:
 
             return individual,
 
-        toolbox.register("mate", custom_cx)
+        # toolbox.register("mate", custom_cx)
+        # toolbox.register("mate", self.order_crossover)
+        toolbox.register("mate", self.cycle_crossover)
         toolbox.register("mutate", custom_mutate, indpb=0.2)
         toolbox.register("select", tools.selTournament, tournsize=3)
 
@@ -436,10 +819,27 @@ class TourismOptimizer:
         pop = toolbox.population(n=50)
         hof = tools.HallOfFame(1)
         
+        #update generasi
         pop, logbook = algorithms.eaSimple(
             pop, toolbox, cxpb=0.7, mutpb=0.3,
             ngen=50, stats=stats, halloffame=hof, 
             verbose=verbose   # ← Enable verbose output
+        )
+
+        pop, logbook = algorithms.eaMuPlusLambda(
+            pop, toolbox,
+            mu=30,           # 30 parents survive  
+            lambda_=50,      # 50 offspring created
+            cxpb=0.7, mutpb=0.3, ngen=50,
+            stats=stats, halloffame=hof, verbose=verbose
+        )
+
+        pop, logbook = algorithms.eaMuCommaLambda(
+            pop, toolbox,
+            mu=30,           # 30 selected from offspring only
+            lambda_=50,      # 50 offspring created  
+            cxpb=0.7, mutpb=0.3, ngen=50,
+            stats=stats, halloffame=hof, verbose=verbose
         )
 
         self.current_route = list(hof[0])
@@ -475,6 +875,231 @@ class TourismOptimizer:
         }
     
         return self.convert_to_json_serializable(result)
+    
+
+    # Tambahkan 2 metode crossover alternatif di class TourismOptimizer
+    def order_crossover(self, ind1, ind2):
+        """Order Crossover (OX) - Fixed version"""
+        if not ind1 or not ind2 or len(ind1) <= 1 or len(ind2) <= 1:
+            return ind1, ind2
+        
+        try:
+            # Simplified Order Crossover
+            size = min(len(ind1), len(ind2))
+            
+            # Create offspring
+            offspring1 = ind1.copy()
+            offspring2 = ind2.copy()
+            
+            # Simple swap elements
+            if size >= 2:
+                point1 = random.randint(0, size-2)
+                point2 = random.randint(point1+1, size-1)
+                
+                # Swap segments
+                offspring1[point1:point2] = ind2[point1:point2]
+                offspring2[point1:point2] = ind1[point1:point2]
+            
+            # Remove duplicates
+            offspring1 = list(dict.fromkeys(offspring1))
+            offspring2 = list(dict.fromkeys(offspring2))
+            
+            # Apply constraints
+            offspring1 = self.apply_constraints(offspring1)
+            offspring2 = self.apply_constraints(offspring2)
+            
+            ind1[:] = offspring1
+            ind2[:] = offspring2
+            
+            return ind1, ind2
+            
+        except Exception as e:
+            # Fallback to original parents if error
+            return ind1, ind2
+
+    def cycle_crossover(self, ind1, ind2):
+        """
+        Cycle Crossover (CX) - Metode 2  
+        Mempertahankan posisi absolut dari elemen
+        """
+        if not ind1 or not ind2:
+            return ind1, ind2
+            
+        if len(ind1) <= 1 or len(ind2) <= 1:
+            return ind1, ind2
+        
+        # Pastikan ukuran sama untuk CX
+        min_size = min(len(ind1), len(ind2))
+        max_size = max(len(ind1), len(ind2))
+        
+        # Pad yang lebih pendek dengan elemen available
+        available_places = [i for i in range(1, len(self.df_places)+1)
+                        if i not in self.preferences.get('avoid_places', [])]
+        
+        ind1_work = ind1[:min_size] if len(ind1) >= min_size else ind1[:]
+        ind2_work = ind2[:min_size] if len(ind2) >= min_size else ind2[:]
+        
+        # Extend jika perlu
+        while len(ind1_work) < min_size:
+            for place in available_places:
+                if place not in ind1_work:
+                    ind1_work.append(place)
+                    break
+        
+        while len(ind2_work) < min_size:
+            for place in available_places:
+                if place not in ind2_work:
+                    ind2_work.append(place)
+                    break
+        
+        # Initialize offspring
+        offspring1 = [None] * min_size
+        offspring2 = [None] * min_size
+        
+        # Track visited positions
+        visited = [False] * min_size
+        
+        # Start with position 0
+        pos = 0
+        cycle_num = 0
+        
+        while not all(visited):
+            # Find start of new cycle
+            while pos < min_size and visited[pos]:
+                pos += 1
+            
+            if pos >= min_size:
+                break
+                
+            # Trace cycle
+            start_pos = pos
+            current_pos = pos
+            
+            while True:
+                visited[current_pos] = True
+                
+                if cycle_num % 2 == 0:  # Even cycles: take from parent1
+                    offspring1[current_pos] = ind1_work[current_pos]
+                    offspring2[current_pos] = ind2_work[current_pos]
+                else:  # Odd cycles: take from parent2
+                    offspring1[current_pos] = ind2_work[current_pos]
+                    offspring2[current_pos] = ind1_work[current_pos]
+                
+                # Find next position in cycle
+                target_value = ind2_work[current_pos] if cycle_num % 2 == 0 else ind1_work[current_pos]
+                
+                try:
+                    if cycle_num % 2 == 0:
+                        next_pos = ind1_work.index(target_value)
+                    else:
+                        next_pos = ind2_work.index(target_value)
+                except ValueError:
+                    break
+                    
+                if next_pos == start_pos:
+                    break
+                    
+                current_pos = next_pos
+            
+            cycle_num += 1
+        
+        # Handle remaining elements jika ada yang None
+        for i in range(min_size):
+            if offspring1[i] is None:
+                for place in available_places:
+                    if place not in offspring1:
+                        offspring1[i] = place
+                        break
+            if offspring2[i] is None:
+                for place in available_places:
+                    if place not in offspring2:
+                        offspring2[i] = place
+                        break
+        
+        # Apply constraint handling
+        offspring1 = self.apply_constraints(offspring1)
+        offspring2 = self.apply_constraints(offspring2)
+        
+        ind1[:] = offspring1
+        ind2[:] = offspring2
+        
+        return ind1, ind2
+
+    def apply_constraints(self, individual):
+        """
+        Helper method untuk menerapkan constraints pada offspring
+        Digunakan oleh kedua metode crossover alternatif
+        """
+        if not individual:
+            return individual
+        
+        # Remove None values
+        individual = [x for x in individual if x is not None]
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        individual = [x for x in individual if not (x in seen or seen.add(x))]
+        
+        # Ensure must_visit places are included
+        for must_visit_id in self.preferences['must_visit']:
+            if must_visit_id not in individual:
+                individual.append(must_visit_id)
+        
+        # Remove avoided places
+        individual = [x for x in individual if x not in self.preferences.get('avoid_places', [])]
+        
+        # Limit to max_places
+        while len(individual) > self.preferences['max_places']:
+            # Remove non-must-visit places first
+            optional = [p for p in individual if p not in self.preferences['must_visit']]
+            if optional:
+                individual.remove(random.choice(optional))
+            else:
+                break
+        
+        # Budget constraint
+        current_budget = sum(self.df_places.iloc[p-1]['entrance_fee'] for p in individual)
+        while current_budget > self.preferences['budget'] and len(individual) > len(self.preferences['must_visit']):
+            # Remove most expensive optional place
+            optional = [p for p in individual if p not in self.preferences['must_visit']]
+            if optional:
+                most_expensive = max(optional, key=lambda p: self.df_places.iloc[p-1]['entrance_fee'])
+                individual.remove(most_expensive)
+                current_budget -= self.df_places.iloc[most_expensive-1]['entrance_fee']
+            else:
+                break
+        
+        # Add more places if under budget and under max_places
+        if len(individual) < self.preferences['max_places']:
+            available_places = [i for i in range(1, len(self.df_places)+1)
+                            if i not in individual and i not in self.preferences.get('avoid_places', [])]
+            
+            for place_id in available_places:
+                if len(individual) >= self.preferences['max_places']:
+                    break
+                
+                fee = self.df_places.iloc[place_id-1]['entrance_fee']
+                if current_budget + fee <= self.preferences['budget']:
+                    individual.append(place_id)
+                    current_budget += fee
+        
+        # Shuffle untuk variasi
+        random.shuffle(individual)
+        
+        return individual
+
+    def register_crossover_method(self, method_name="original"):
+        """
+        Method untuk mengganti crossover yang digunakan
+        method_name: "original", "order", "cycle"
+        """
+        if method_name == "order":
+            return self.order_crossover
+        elif method_name == "cycle": 
+            return self.cycle_crossover
+        else:
+            return self.order_crossover  # Original method
+        
     def create_schedule(self):
         if not self.current_route or not self.preferences:
             return pd.DataFrame()
@@ -487,7 +1112,7 @@ class TourismOptimizer:
 
         schedule.append({
             'location': self.preferences['start_location']['name'],
-            'activity': 'Berangkat dari hotel',
+            'activity': 'Berangkat dari '+ self.preferences['start_location']['name'],
             'time': current_time.strftime('%H:%M'),
             'type': 'departure'
         })

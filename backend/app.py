@@ -101,7 +101,21 @@ def optimize_route():
         data = request.get_json() or {}
         preferences = data.get('preferences', {})
         
+        crossover_method = data.get('crossover_method', 'original')
+        algorithm = data.get('algorithm', 'simple')
+
+        # Fallback: cek di dalam preferences
+        if crossover_method == 'original' and 'crossover_method' in preferences:
+            crossover_method = preferences.pop('crossover_method', 'original')
+            
+        if algorithm == 'simple' and 'algorithm' in preferences:
+            algorithm = preferences.pop('algorithm', 'simple')
+
+        print(f"🔍 Raw data received: {data}")
+        print(f"🔧 Using: {crossover_method} crossover + {algorithm} algorithm")
         print(f"📊 User Preferences: {preferences}")
+        print(f"🧬 Crossover Method: {crossover_method}")
+        print(f"⚡ Algorithm: {algorithm}")
 
         # Validate location data if provided
         if 'start_location' in preferences:
@@ -130,7 +144,12 @@ def optimize_route():
         verbose = data.get('verbose', True)  # Default ke True untuk menampilkan GA progres
         # Optimize route with user preferences
         print("🧬 Running Genetic Algorithm...")
-        result = optimizer.optimize_route(preferences, verbose=verbose)
+        result = optimizer.optimize_route_with_crossover_choice(
+            preferences, 
+            crossover_method=crossover_method,  # ← Gunakan parameter user
+            algorithm=algorithm,
+            verbose=verbose
+        )
         
         # Add location info to response
         result['used_preferences'] = {
@@ -149,7 +168,7 @@ def optimize_route():
         return jsonify({
             'status': 'success',
             'data': result,
-            'message': 'Rute berhasil dioptimasi'
+            'message': f'Optimized with {crossover_method} crossover and {algorithm} algorithm'
         })
         
     except ValueError as ve:
@@ -385,6 +404,9 @@ def reset_journey():
 @app.route('/api/next-and-reoptimize', methods=['POST'])
 def next_place_and_reoptimize():
     print("➡️ NEXT PLACE AND REOPTIMIZED")
+    # ✅ Fix: Import datetime di awal
+    from datetime import datetime
+    start_time = datetime.now()
     """Gabungan Menu 1 & 2: Lanjut ke tempat berikutnya + Reoptimasi rute"""
     try:
         # Handle both empty body and JSON body
@@ -393,15 +415,44 @@ def next_place_and_reoptimize():
         else:
             data = {}
         
+        # ✅ Fix: Cek parameter di 2 tempat (root level dan dalam body)
+        crossover_method = data.get('crossover_method', 'original')
+        algorithm = data.get('algorithm', 'simple')
+        
+        # Enhanced debug info
+        print(f"🔍 Raw data received: {data}")
+        print(f"🧬 Crossover Method: {crossover_method}")
+        print(f"⚡ Algorithm: {algorithm}")
+        
+        # ✅ Validate crossover_method and algorithm values
+        valid_crossover = ['original', 'order', 'cycle']
+        valid_algorithm = ['simple', 'mu_plus_lambda', 'mu_comma_lambda']
+        
+        if crossover_method not in valid_crossover:
+            return jsonify({
+                'status': 'error',
+                'message': f"Invalid crossover_method. Valid options: {valid_crossover}"
+            }), 400
+            
+        if algorithm not in valid_algorithm:
+            return jsonify({
+                'status': 'error',
+                'message': f"Invalid algorithm. Valid options: {valid_algorithm}"
+            }), 400
+
         # Generate current time otomatis dari server
-        from datetime import datetime
         current_time = datetime.now().strftime('%H:%M')
         
+        print(f"🔧 Using: {crossover_method} crossover + {algorithm} algorithm")
+        print(f"⏰ Current time: {current_time}")
+        
         # Step 1: Jalankan next-place (Menu 1)
+        print("📍 Step 1: Moving to next place...")
         next_place_result = optimizer.get_next_place()
         
         if not next_place_result['success']:
             # Jika tidak bisa next place, return error
+            print(f"❌ Cannot move to next place: {next_place_result['message']}")
             return jsonify({
                 'status': 'error',
                 'data': {
@@ -411,33 +462,103 @@ def next_place_and_reoptimize():
                 'message': next_place_result['message']
             })
         
-        # Step 2: Jalankan reoptimize (Menu 2)
-        reoptimize_result = optimizer.reoptimize_route(current_time)
+        print(f"✅ Successfully moved to: {next_place_result.get('current_place', {}).get('name', 'Unknown')}")
         
-        # Gabungkan hasil kedua proses
+        # Step 2: Reoptimize dengan crossover method + algorithm
+        print("🔄 Step 2: Reoptimizing route...")
+        reoptimize_result = optimizer.reoptimize_route_with_crossover(
+            current_time, 
+            crossover_method=crossover_method,
+            algorithm=algorithm
+        )
+        
+        print("✅ Reoptimization completed")
+        
+        # Combined result dengan info lengkap
         combined_result = {
             'success': True,
             'step1_next_place': next_place_result,
             'step2_reoptimize': reoptimize_result,
+            'optimization_info': {
+                'crossover_used': crossover_method,
+                'algorithm_used': algorithm,
+                'current_time': current_time
+            },
             'summary': {
                 'moved_to': next_place_result.get('current_place', {}).get('name', 'Unknown'),
                 'new_position': next_place_result.get('current_position', 0),
                 'route_updated': reoptimize_result.get('success', False),
                 'weather_condition': reoptimize_result.get('dynamic_data', {}).get('weather', 'Unknown'),
-                'total_places_in_route': len(reoptimize_result.get('updated_route', []))
+                'total_places_in_route': len(reoptimize_result.get('route_ids', []))
             }
+        }
+
+        execution_time = (datetime.now() - start_time).total_seconds()
+        print(f"✅ NEXT AND REOPTIMIZE COMPLETED in {execution_time:.2f}s")
+        
+        # Safe logging
+        try:
+            if 'route_ids' in reoptimize_result and reoptimize_result['route_ids']:
+                route_names = [optimizer.df_places.iloc[id-1]['name'] for id in reoptimize_result['route_ids']]
+                print(f"🗺️ Updated Route: {route_names}")
+            
+            if 'budget_info' in reoptimize_result:
+                budget_info = reoptimize_result['budget_info']
+                print(f"💰 Budget: Used {budget_info.get('used_budget', 0)}, Remaining {budget_info.get('remaining_budget', 0)}")
+                
+            if 'optimization_fitness' in reoptimize_result and reoptimize_result['optimization_fitness']:
+                print(f"📈 Reoptimization Fitness: {reoptimize_result['optimization_fitness']:.2f}")
+        except Exception as log_error:
+            print(f"⚠️ Logging error (non-critical): {log_error}")
+        
+        # Add execution time to response
+        combined_result['execution_info'] = {
+            'execution_time_seconds': execution_time,
+            'timestamp': datetime.now().isoformat()
         }
         
         return jsonify({
             'status': 'success',
             'data': combined_result,
-            'message': f"Berhasil pindah ke {next_place_result.get('current_place', {}).get('name', 'tempat berikutnya')} dan rute telah dioptimasi ulang"
+            'message': f"Berhasil pindah dan reoptimasi dengan {crossover_method} crossover dan {algorithm} algorithm"
+        })
+        
+    except Exception as e:
+        print(f"💥 Next and Reoptimize Error: {str(e)}")
+        print(f"💥 Error type: {type(e).__name__}")
+        import traceback
+        print(f"💥 Traceback: {traceback.format_exc()}")
+        return jsonify({
+            'status': 'error',
+            'message': f"Error dalam proses gabungan: {str(e)}"
+        }), 500
+    
+@app.route('/api/previous-route', methods=['GET'])
+def get_previous_route():
+    """Dapatkan rute sebelumnya (simple)"""
+    try:
+        previous = optimizer.get_previous_route()
+        
+        if not previous:
+            return jsonify({
+                'status': 'success',
+                'data': None,
+                'message': 'No previous route available'
+            })
+        
+        # ✅ Fix: Convert numpy types
+        previous_clean = optimizer.convert_to_json_serializable(previous)
+        
+        return jsonify({
+            'status': 'success', 
+            'data': previous_clean,
+            'message': 'Previous route retrieved'
         })
         
     except Exception as e:
         return jsonify({
             'status': 'error',
-            'message': f"Error dalam proses gabungan: {str(e)}"
+            'message': str(e)
         }), 500
 
 # Error handlers
