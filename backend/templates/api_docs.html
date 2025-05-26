@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tourism Route Optimizer API Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 40px 0;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .nav-tab:hover {
+            background: #e9ecef;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .endpoint {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+            transition: transform 0.2s ease;
+        }
+
+        .endpoint:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .method {
+            display: inline-block;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-right: 15px;
+            text-transform: uppercase;
+        }
+
+        .get { background: #28a745; }
+        .post { background: #007bff; }
+        .put { background: #ffc107; color: #333; }
+        .delete { background: #dc3545; }
+
+        .endpoint-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .endpoint-description {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin: 10px 0;
+        }
+
+        .response-example {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .response-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .quick-start {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .quick-start h3 {
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .step {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .step-number {
+            background: #fff;
+            color: #667eea;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .nav-tabs {
+                flex-direction: column;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .tab-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗺️ Tourism Route Optimizer API</h1>
+            <p>API untuk optimasi rute wisata Yogyakarta dengan algoritma genetika dan data real-time</p>
+        </div>
+
+        <div class="main-content">
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="openTab(event, 'overview')">Overview</button>
+                <button class="nav-tab" onclick="openTab(event, 'endpoints')">API Endpoints</button>
+                <button class="nav-tab" onclick="openTab(event, 'examples')">Examples</button>
+                <button class="nav-tab" onclick="openTab(event, 'testing')">Testing</button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="overview" class="tab-content active">
+                <h2>🚀 Selamat Datang di Tourism Route Optimizer API</h2>
+                <p>API ini menyediakan sistem optimasi rute wisata yang cerdas untuk kota Yogyakarta dengan 5 fitur utama yang dapat diakses melalui REST API.</p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <div class="feature-title">Smart Route Optimization</div>
+                        <p>Algoritma genetika untuk optimasi rute berdasarkan preferensi pengguna</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⏱️</div>
+                        <div class="feature-title">Real-time Updates</div>
+                        <p>Pembaruan data cuaca, lalu lintas, dan keramaian secara real-time</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📱</div>
+                        <div class="feature-title">Interactive Journey</div>
+                        <p>Kontrol perjalanan secara interaktif dengan 5 menu utama</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🗺️</div>
+                        <div class="feature-title">Visual Maps</div>
+                        <p>Visualisasi rute pada peta interaktif dengan Folium</p>
+                    </div>
+                </div>
+
+                <div class="quick-start">
+                    <h3>🚀 Quick Start</h3>
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        <strong>Install Dependencies:</strong> <code>pip install -r requirements.txt</code>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        <strong>Run API:</strong> <code>python app.py</code>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        <strong>Access API:</strong> <code>http://localhost:5000</code>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">4</span>
+                        <strong>Start Optimizing:</strong> POST ke <code>/api/optimize</code>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>💡 Info:</strong> API ini mencakup 15 tempat wisata populer di Yogyakarta dengan data lengkap seperti jam buka, biaya masuk, dan kategori wisata.
+                </div>
+            </div>
+
+            <!-- API Endpoints Tab -->
+            <div id="endpoints" class="tab-content">
+                <h2>📋 API Endpoints</h2>
+
+                <div class="endpoint">
+                    <span class="method post">POST</span>
+                    <div class="endpoint-title">/api/optimize</div>
+                    <div class="endpoint-description">Optimasi rute awal berdasarkan preferensi pengguna</div>
+                    <div class="code-block">
+POST /api/optimize
+Content-Type: application/json
+
+{
+  "preferences": {
+    "start_time": "08:00",
+    "end_time": "20:00",
+    "max_places": 6,
+    "budget": 200000,
+    "preferred_categories": ["Budaya", "Alam"],
+    "must_visit": [1, 2],
+    "lunch_time": "12:00"
+  }
+}
+                    </div>
+                </div>
+
+                <div class="endpoint">
+                    <span class="method post">POST</span>
+                    <div class="endpoint-title">/api/next-place</div>
+                    <div class="endpoint-description">Menu 1: Lanjutkan ke tempat berikutnya dalam rute</div>
+                    <div class="code-block">POST /api/next-place</div>
+                </div>
+
+                <div class="endpoint">
+                    <span class="method post">POST</span>
+                    <div class="endpoint-title">/api/reoptimize</div>
+                    <div class="endpoint-description">Menu 2: Perbarui data real-time dan optimasi ulang rute</div>
+                    <div class="code-block">
+POST /api/reoptimize
+Content-Type: application/json
+
+{
+  "current_time": "14:30"
+}
+                    </div>
+                </div>
+
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <div class="endpoint-title">/api/schedule</div>
+                    <div class="endpoint-description">Menu 3: Lihat jadwal perjalanan saat ini</div>
+                    <div class="code-block">GET /api/schedule</div>
+                </div>
+
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <div class="endpoint-title">/api/route</div>
+                    <div class="endpoint-description">Menu 4: Lihat rute saat ini dan progress perjalanan</div>
+                    <div class="code-block">GET /api/route</div>
+                </div>
+
+                <div class="endpoint">
+                    <span class="method post">POST</span>
+                    <div class="endpoint-title">/api/end-journey</div>
+                    <div class="endpoint-description">Menu 5: Akhiri perjalanan dan dapatkan ringkasan</div>
+                    <div class="code-block">POST /api/end-journey</div>
+                </div>
+
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <div class="endpoint-title">/api/places</div>
+                    <div class="endpoint-description">Lihat semua tempat wisata yang tersedia</div>
+                    <div class="code-block">GET /api/places</div>
+                </div>
+
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <div class="endpoint-title">/api/map</div>
+                    <div class="endpoint-description">Dapatkan peta rute dalam format HTML</div>
+                    <div class="code-block">GET /api/map</div>
+                </div>
+
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <div class="endpoint-title">/api/status</div>
+                    <div class="endpoint-description">Dapatkan status perjalanan saat ini</div>
+                    <div class="code-block">GET /api/status</div>
+                </div>
+
+                <div class="endpoint">
+                    <span class="method post">POST</span>
+                    <div class="endpoint-title">/api/reset</div>
+                    <div class="endpoint-description">Reset state perjalanan ke awal</div>
+                    <div class="code-block">POST /api/reset</div>
+                </div>
+            </div>
+
+            <!-- Examples Tab -->
+            <div id="examples" class="tab-content">
+                <h2>💡 Usage Examples</h2>
+
+                <h3>1. Memulai Optimasi Rute</h3>
+                <div class="code-block">
+curl -X POST http://localhost:5000/api/optimize \
+  -H "Content-Type: application/json" \
+  -d '{
+    "preferences": {
+      "budget": 150000,
+      "max_places": 5,
+      "preferred_categories": ["Budaya", "Alam"],
+      "must_visit": [1, 2],
+      "start_time": "09:00",
+      "end_time": "18:00"
+    }
+  }'
+                </div>
+
+                <div class="response-example">
+                    <div class="response-title">Response:</div>
+                    <div class="code-block">
+{
+  "status": "success",
+  "data": {
+    "route": [1, 2, 3, 5, 8],
+    "fitness": 85.5,
+    "schedule": [...],
+    "total_cost": 145000
+  },
+  "message": "Rute berhasil dioptimasi"
+}
+                    </div>
+                </div>
+
+                <h3>3. API Gabungan - Next Place + Reoptimize</h3>
+                <div class="code-block">
+curl -X POST http://localhost:5000/api/next-and-reoptimize
+                </div>
+
+                <div class="response-example">
+                    <div class="response-title">Response:</div>
+                    <div class="code-block">
+{
+  "status": "success",
+  "data": {
+    "success": true,
+    "step1_next_place": {
+      "success": true,
+      "current_position": 2,
+      "current_place": {
+        "id": 2,
+        "name": "Candi Prambanan",
+        "category": "Budaya"
+      }
+    },
+    "step2_reoptimize": {
+      "success": true,
+      "dynamic_data": {
+        "weather": "Cerah",
+        "crowdedness_factor": 1.5
+      },
+      "updated_route": ["Candi Borobudur", "Candi Prambanan", ...]
+    },
+    "summary": {
+      "moved_to": "Candi Prambanan",
+      "new_position": 2,
+      "route_updated": true,
+      "weather_condition": "Cerah"
+    },
+    "server_time": "15:45",
+    "timestamp": "2025-05-25T15:45:30.123456"
+  },
+  "message": "Berhasil pindah ke Candi Prambanan dan rute telah dioptimasi ulang"
+}
+                    </div>
+                </div>
+
+                <h3>4. Workflow Perjalanan Lengkap</h3>
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>Optimasi Rute:</strong> POST <code>/api/optimize</code>
+                </div>
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>Cek Status:</strong> GET <code>/api/status</code>
+                </div>
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <strong>Lanjut + Reoptimasi Otomatis:</strong> POST <code>/api/next-and-reoptimize</code>
+                </div>
+                <div class="step">
+                    <span class="step-number">4</span>
+                    <strong>Manual - Lanjut ke Tempat Berikutnya:</strong> POST <code>/api/next-place</code>
+                </div>
+                <div class="step">
+                    <span class="step-number">5</span>
+                    <strong>Manual - Reoptimasi (jika perlu):</strong> POST <code>/api/reoptimize</code>
+                </div>
+                <div class="step">
+                    <span class="step-number">6</span>
+                    <strong>Akhiri Perjalanan:</strong> POST <code>/api/end-journey</code>
+                </div>
+
+                <h3>5. Response Format Standar</h3>
+                <div class="code-block">
+{
+  "status": "success|error",
+  "data": {
+    // Response data
+  },
+  "message": "Descriptive message"
+}
+                </div>
+
+                <div class="alert alert-warning">
+                    <strong>⚠️ Catatan:</strong> Pastikan untuk melakukan optimasi rute terlebih dahulu sebelum menggunakan endpoint lainnya. Gunakan <code>/api/next-and-reoptimize</code> untuk kemudahan otomatis.
+                </div>
+            </div>
+
+            <!-- Testing Tab -->
+            <div id="testing" class="tab-content">
+                <h2>🧪 API Testing</h2>
+
+                <h3>Testing Tools</h3>
+                <p>Anda dapat menggunakan berbagai tools untuk testing API:</p>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Tool</th>
+                            <th>Platform</th>
+                            <th>Deskripsi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>cURL</td>
+                            <td>Command Line</td>
+                            <td>Tool bawaan untuk HTTP requests</td>
+                        </tr>
+                        <tr>
+                            <td>Postman</td>
+                            <td>Desktop/Web</td>
+                            <td>GUI tool populer untuk API testing</td>
+                        </tr>
+                        <tr>
+                            <td>Insomnia</td>
+                            <td>Desktop</td>
+                            <td>Alternative GUI tool untuk REST API</td>
+                        </tr>
+                        <tr>
+                            <td>HTTPie</td>
+                            <td>Command Line</td>
+                            <td>User-friendly command line HTTP client</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Test Script dengan Python</h3>
+                <div class="code-block">
+import requests
+import json
+
+# Base URL
+BASE_URL = "http://localhost:5000"
+
+# Test 1: Optimize route
+response = requests.post(f"{BASE_URL}/api/optimize", 
+    json={
+        "preferences": {
+            "budget": 200000,
+            "max_places": 6
+        }
+    }
+)
+print("Optimize:", response.json())
+
+# Test 2: Get status
+response = requests.get(f"{BASE_URL}/api/status")
+print("Status:", response.json())
+
+# Test 3: Next place
+response = requests.post(f"{BASE_URL}/api/next-place")
+print("Next Place:", response.json())
+
+# Test 4: Get route
+response = requests.get(f"{BASE_URL}/api/route")
+print("Route:", response.json())
+                </div>
+
+                <h3>Environment Variables</h3>
+                <div class="code-block">
+# Production
+API_BASE_URL=https://your-domain.com
+
+# Development  
+API_BASE_URL=http://localhost:5000
+
+# Testing
+API_BASE_URL=http://localhost:5000
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>💡 Tip:</strong> Gunakan collection Postman untuk menyimpan dan mengorganisir test requests Anda.
+                </div>
+
+                <div style="text-align: center; margin-top: 40px;">
+                    <a href="/api/places" class="btn">🗺️ Lihat Tempat Wisata</a>
+                    <a href="/api/status" class="btn" style="margin-left: 10px;">📊 Cek Status API</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            
+            // Hide all tab content
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            
+            // Remove active class from all tabs
+            tablinks = document.getElementsByClassName("nav-tab");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            
+            // Show the selected tab and mark button as active
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        // Add some interactive features
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add copy functionality to code blocks
+            const codeBlocks = document.querySelectorAll('.code-block');
+            codeBlocks.forEach(block => {
+                block.addEventListener('click', function() {
+                    navigator.clipboard.writeText(this.textContent);
+                    
+                    // Show feedback
+                    const originalBg = this.style.backgroundColor;
+                    this.style.backgroundColor = '#4a5568';
+                    setTimeout(() => {
+                        this.style.backgroundColor = originalBg;
+                    }, 200);
+                });
+                
+                // Add cursor pointer
+                block.style.cursor = 'pointer';
+                block.title = 'Click to copy';
+            });
+        });
+    </script>
+</body>
+</html>

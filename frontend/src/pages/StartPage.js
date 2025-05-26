@@ -1,0 +1,202 @@
+import { useEffect, useState } from "react";
+
+const API_URL = 'http://localhost:5000';
+
+const StartPage = ({ setCurrentPage }) => {
+  const [loading, setLoading] = useState(false);
+
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [startLocation, setStartLocation] = useState(null);
+  const [budget, setBudget] = useState(0);
+  const [maxPlaces, setMaxPlaces] = useState(0);
+  const [mustVisit, setMustVisit] = useState([]);
+  const [preferredCategories, setPreferredCategories] = useState([]);
+
+  const [placesData, setPlacesData] = useState(null);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = () => {
+    fetch(API_URL + '/api/places', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        setPlacesData(data.data.places);
+      })
+      .catch(error => {
+        console.error('Error fetching trip data:', error);
+      });
+  }
+
+  const handleStart = () => {
+    console.log('Starting trip with preferences:', {
+      startTime,
+      endTime,
+      startLocation,
+      maxPlaces,
+      budget,
+      preferredCategories,
+      mustVisit
+    });
+
+    setLoading(true);
+
+    fetch(API_URL + '/api/optimize', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        // start_time: startTime,
+        // end_time: endTime,
+        start_location: startLocation,
+        max_places: maxPlaces,
+        budget: budget,
+        preferred_categories: preferredCategories.filter(cat => cat !== ''),
+        must_visit: mustVisit.filter(place => place !== ''),
+      }),
+    })
+      .then(async response => {
+        const responseText = await response.text();
+        const parsedJson = JSON.parse(responseText.replace(/\bNaN\b/g, "null"));
+        return parsedJson;
+      })
+      .then(data => {
+        console.log('Optimization result:', data.data);
+        setCurrentPage(1);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error during optimization:', error);
+        setLoading(false);
+      })
+  }
+
+  const handleCategoryChange = (event) => {
+    const { value, checked } = event.target;
+    setPreferredCategories(prev => {
+      if (checked) {
+        return [...prev, value];
+      } else {
+        return prev.filter(cat => cat !== value);
+      }
+    });
+  }
+
+  const handleMustVisitChange = (event) => {
+    const { value, checked } = event.target;
+    setMustVisit(prev => {
+      if (checked) {
+        return [...prev, parseInt(value)];
+      } else {
+        return prev.filter(place => place !== parseInt(value));
+      }
+    });
+  }
+
+  return (
+    <div className="px-4 py-8 min-h-screen flex flex-col justify-center items-center bg-gray-100">
+      <div className="text-3xl font-bold leading-tight">Dynamic Tourism Attraction Routing</div>
+      <div className="mt-5 px-4 py-4 bg-white rounded-xl shadow-lg w-full flex flex-col">
+        <div className="font-bold text-lg">Preferences</div>
+        <div className="mt-3.5 w-full">
+          <div className="text-sm font-medium">Trip Time</div>
+          <div className="mt-1.5 flex flex-row">
+            <input onChange={(e) => setStartTime(e.target.value)}
+              type="time"
+              className="px-3 py-2 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="Start time"
+            />
+            <span className="mx-3 self-center text-gray-500">to</span>
+            <input onChange={(e) => setEndTime(e.target.value)}
+              type="time"
+              className="px-3 py-2 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="End time"
+            />
+          </div>
+        </div>
+        <div className="mt-3.5 w-full">
+          <div className="text-sm font-medium">Start location</div>
+          <select
+            className="mt-1.5 w-full px-3 py-2.5 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            defaultValue=""
+            onChange={(e) => setStartLocation(prev => {
+              if (e.target.value === '') return null;
+              const index = parseInt(e.target.value);
+              return {
+                name: placesData[index].name,
+                latitude: placesData[index].latitude,
+                longitude: placesData[index].longitude
+              }
+            })}
+          >
+            <option value="" disabled>Select starting location</option>
+            { placesData &&
+              placesData.map((place, index) => (
+                <option key={place.name} value={index}>{place.name}</option>
+              ))
+            }
+          </select>
+        </div>
+        <div className="mt-3.5 w-full">
+          <div className="text-sm font-medium">Max. places to visit</div>
+          <input onChange={(e) => setMaxPlaces(parseInt(e.target.value))}
+            type="number"
+            placeholder="Max. places to visit"
+            className="mt-1.5 w-full px-3 py-2.5 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+        <div>
+          <div className="text-sm font-medium mt-3.5">Must visit</div>
+          <div className="mt-1.5 px-3 max-h-20 border border-gray-200 rounded-md overflow-auto flex flex-wrap gap-x-3 gap-y-1.5">
+            {placesData && placesData.map((place, index) => (
+              <label key={place.name} className="flex items-center gap-x-1.5">
+                <input type="checkbox" value={index} className="accent-blue-500" onChange={handleMustVisitChange} />
+                <span className="text-xs">{place.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="mt-3.5 w-full">
+          <div className="text-sm font-medium">Budget</div>
+          <input onChange={(e) => setBudget(parseInt(e.target.value))}
+            type="number"
+            placeholder="Budget"
+            className="mt-1.5 w-full px-3 py-2.5 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+        <div className="mt-3.5 w-full">
+          <div className="text-sm font-medium mb-1">Preferred Categories</div>
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+            <label className="flex items-center gap-x-1.5">
+              <input type="checkbox" value="Alam" className="accent-blue-500" onChange={handleCategoryChange} />
+              <span className="text-sm">Alam</span>
+            </label>
+            <label className="flex items-center gap-x-1.5">
+              <input type="checkbox" value="Budaya" className="accent-blue-500" onChange={handleCategoryChange} />
+              <span className="text-sm">Budaya</span>
+            </label>
+            <label className="flex items-center gap-x-1.5">
+              <input type="checkbox" value="Rekreasi" className="accent-blue-500" onChange={handleCategoryChange} />
+              <span className="text-sm">Rekreasi</span>
+            </label>
+            <label className="flex items-center gap-x-1.5">
+              <input type="checkbox" value="Belanja" className="accent-blue-500" onChange={handleCategoryChange} />
+              <span className="text-sm">Belanja</span>
+            </label>
+          </div>
+          <button onClick={() => handleStart()} disabled={loading} className="mt-6 px-5 py-2.5 w-full bg-blue-500 disabled:bg-blue-300 rounded-lg font-semibold text-md text-white">Start Trip</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default StartPage;

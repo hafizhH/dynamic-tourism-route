@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_eb15aeb398e5704f8e26594982476be5 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_eb15aeb398e5704f8e26594982476be5" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_eb15aeb398e5704f8e26594982476be5 = L.map(
+                "map_eb15aeb398e5704f8e26594982476be5",
+                {
+                    center: [-7.817186666666666, 110.42148666666667],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 10,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_86bd96279b43b71c4a00301e09071ef3 = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_86bd96279b43b71c4a00301e09071ef3.addTo(map_eb15aeb398e5704f8e26594982476be5);
+        
+    
+            var marker_b5a7fc0f93c8fafc0169fdea80b3fe34 = L.marker(
+                [-7.7925, 110.3668],
+                {
+}
+            ).addTo(map_eb15aeb398e5704f8e26594982476be5);
+        
+    
+            var icon_e51b581c6495967d5ef2a8540bb08544 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "green",
+  "iconColor": "white",
+  "icon": "home",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_b17fc9b8e5fea57909aeece3877b5fe8 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_501b3a4d643cf7303194cc8a95d3c631 = $(`<div id="html_501b3a4d643cf7303194cc8a95d3c631" style="width: 100.0%; height: 100.0%;">Start/End: Hotel Malioboro</div>`)[0];
+                popup_b17fc9b8e5fea57909aeece3877b5fe8.setContent(html_501b3a4d643cf7303194cc8a95d3c631);
+            
+        
+
+        marker_b5a7fc0f93c8fafc0169fdea80b3fe34.bindPopup(popup_b17fc9b8e5fea57909aeece3877b5fe8)
+        ;
+
+        
+    
+    
+            marker_b5a7fc0f93c8fafc0169fdea80b3fe34.bindTooltip(
+                `<div>
+                     Hotel Malioboro
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_b5a7fc0f93c8fafc0169fdea80b3fe34.setIcon(icon_e51b581c6495967d5ef2a8540bb08544);
+            
+    
+            var marker_310d02d98066baffd0f07385e7263a22 = L.marker(
+                [-7.7929, 110.3668],
+                {
+}
+            ).addTo(map_eb15aeb398e5704f8e26594982476be5);
+        
+    
+            var icon_8bb8f0f981719ba009eb611c52664184 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_fcbb0018699fc5ff09e310fc6a23a7cc = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_e8f20fbca9d7435d7378f0413f484c27 = $(`<div id="html_e8f20fbca9d7435d7378f0413f484c27" style="width: 100.0%; height: 100.0%;">1. Malioboro - Belanja</div>`)[0];
+                popup_fcbb0018699fc5ff09e310fc6a23a7cc.setContent(html_e8f20fbca9d7435d7378f0413f484c27);
+            
+        
+
+        marker_310d02d98066baffd0f07385e7263a22.bindPopup(popup_fcbb0018699fc5ff09e310fc6a23a7cc)
+        ;
+
+        
+    
+    
+            marker_310d02d98066baffd0f07385e7263a22.bindTooltip(
+                `<div>
+                     Malioboro
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_310d02d98066baffd0f07385e7263a22.setIcon(icon_8bb8f0f981719ba009eb611c52664184);
+            
+    
+            var marker_255b918e8f45f16307ec596adbd07ca0 = L.marker(
+                [-7.805, 110.3644],
+                {
+}
+            ).addTo(map_eb15aeb398e5704f8e26594982476be5);
+        
+    
+            var icon_9933a9ac5798507d58c34cd30aae42d1 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_29f93d5325099205bf5dbb035a80d166 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_77bb71259d8931dc33897597e374206d = $(`<div id="html_77bb71259d8931dc33897597e374206d" style="width: 100.0%; height: 100.0%;">2. Kraton Yogyakarta - Budaya</div>`)[0];
+                popup_29f93d5325099205bf5dbb035a80d166.setContent(html_77bb71259d8931dc33897597e374206d);
+            
+        
+
+        marker_255b918e8f45f16307ec596adbd07ca0.bindPopup(popup_29f93d5325099205bf5dbb035a80d166)
+        ;
+
+        
+    
+    
+            marker_255b918e8f45f16307ec596adbd07ca0.bindTooltip(
+                `<div>
+                     Kraton Yogyakarta
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_255b918e8f45f16307ec596adbd07ca0.setIcon(icon_9933a9ac5798507d58c34cd30aae42d1);
+            
+    
+            var marker_25be87f772c132bc4cd72384832fec13 = L.marker(
+                [-7.81, 110.3594],
+                {
+}
+            ).addTo(map_eb15aeb398e5704f8e26594982476be5);
+        
+    
+            var icon_331ed323f407b979d43a3feface36ac3 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_5f604f8aabd512c659500eb88147b3fa = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_e136713bb92882dd9884dbc8608c16c6 = $(`<div id="html_e136713bb92882dd9884dbc8608c16c6" style="width: 100.0%; height: 100.0%;">3. Taman Sari - Budaya</div>`)[0];
+                popup_5f604f8aabd512c659500eb88147b3fa.setContent(html_e136713bb92882dd9884dbc8608c16c6);
+            
+        
+
+        marker_25be87f772c132bc4cd72384832fec13.bindPopup(popup_5f604f8aabd512c659500eb88147b3fa)
+        ;
+
+        
+    
+    
+            marker_25be87f772c132bc4cd72384832fec13.bindTooltip(
+                `<div>
+                     Taman Sari
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_25be87f772c132bc4cd72384832fec13.setIcon(icon_331ed323f407b979d43a3feface36ac3);
+            
+    
+            var marker_e2bb6a8bb383a59d32e2c1014baa7bea = L.marker(
+                [-7.6079, 110.2038],
+                {
+}
+            ).addTo(map_eb15aeb398e5704f8e26594982476be5);
+        
+    
+            var icon_645966b82f70f279a6ef0d95b29144f2 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_c5451986166dbc80d94c9f9a76c03114 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_8fa21c8a0f1bd9f3be052b824e105806 = $(`<div id="html_8fa21c8a0f1bd9f3be052b824e105806" style="width: 100.0%; height: 100.0%;">4. Candi Borobudur - Budaya</div>`)[0];
+                popup_c5451986166dbc80d94c9f9a76c03114.setContent(html_8fa21c8a0f1bd9f3be052b824e105806);
+            
+        
+
+        marker_e2bb6a8bb383a59d32e2c1014baa7bea.bindPopup(popup_c5451986166dbc80d94c9f9a76c03114)
+        ;
+
+        
+    
+    
+            marker_e2bb6a8bb383a59d32e2c1014baa7bea.bindTooltip(
+                `<div>
+                     Candi Borobudur
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_e2bb6a8bb383a59d32e2c1014baa7bea.setIcon(icon_645966b82f70f279a6ef0d95b29144f2);
+            
+    
+            var marker_b2c93bec8aefdfbf66e0220dfbac103a = L.marker(
+                [-7.5407, 110.4457],
+                {
+}
+            ).addTo(map_eb15aeb398e5704f8e26594982476be5);
+        
+    
+            var icon_5e6fec4204f5fb85c1a5ca7cd81db37a = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_51ef1b7c240c9bcc784772520286554f = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_dc16ab7dded8a3c25055d99de287fd14 = $(`<div id="html_dc16ab7dded8a3c25055d99de287fd14" style="width: 100.0%; height: 100.0%;">5. Gunung Merapi - Alam</div>`)[0];
+                popup_51ef1b7c240c9bcc784772520286554f.setContent(html_dc16ab7dded8a3c25055d99de287fd14);
+            
+        
+
+        marker_b2c93bec8aefdfbf66e0220dfbac103a.bindPopup(popup_51ef1b7c240c9bcc784772520286554f)
+        ;
+
+        
+    
+    
+            marker_b2c93bec8aefdfbf66e0220dfbac103a.bindTooltip(
+                `<div>
+                     Gunung Merapi
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_b2c93bec8aefdfbf66e0220dfbac103a.setIcon(icon_5e6fec4204f5fb85c1a5ca7cd81db37a);
+            
+    
+            var marker_481acfb97a8558baa7d43a5eace80af8 = L.marker(
+                [-7.752, 110.4914],
+                {
+}
+            ).addTo(map_eb15aeb398e5704f8e26594982476be5);
+        
+    
+            var icon_9afc6ed12fc4e3513ec357bdbf0980d7 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_b9b0c8d3e4fb950e5f1d1b4fb6f2ca4c = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_2c9147427a17bfcb286da592e9544b0e = $(`<div id="html_2c9147427a17bfcb286da592e9544b0e" style="width: 100.0%; height: 100.0%;">6. Candi Prambanan - Budaya</div>`)[0];
+                popup_b9b0c8d3e4fb950e5f1d1b4fb6f2ca4c.setContent(html_2c9147427a17bfcb286da592e9544b0e);
+            
+        
+
+        marker_481acfb97a8558baa7d43a5eace80af8.bindPopup(popup_b9b0c8d3e4fb950e5f1d1b4fb6f2ca4c)
+        ;
+
+        
+    
+    
+            marker_481acfb97a8558baa7d43a5eace80af8.bindTooltip(
+                `<div>
+                     Candi Prambanan
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_481acfb97a8558baa7d43a5eace80af8.setIcon(icon_9afc6ed12fc4e3513ec357bdbf0980d7);
+            
+    
+            var poly_line_b06e23bc591343e758e1f4d05be3a0c0 = L.polyline(
+                [[-7.7925, 110.3668], [-7.7929, 110.3668], [-7.805, 110.3644], [-7.81, 110.3594], [-7.6079, 110.2038], [-7.5407, 110.4457], [-7.752, 110.4914], [-7.7925, 110.3668]],
+                {"bubblingMouseEvents": true, "color": "green", "dashArray": null, "dashOffset": null, "fill": false, "fillColor": "green", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1, "smoothFactor": 1.0, "stroke": true, "weight": 2.5}
+            ).addTo(map_eb15aeb398e5704f8e26594982476be5);
+        
+</script>
+</html>
