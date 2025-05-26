@@ -94,6 +94,13 @@ def home():
 
 @app.route('/api/optimize', methods=['POST'])
 def optimize_route():
+    # ✅ START SEPARATOR
+    print("\n" + "🟢" * 80)
+    print("🟢" + " " * 30 + "NEW API REQUEST" + " " * 30 + "🟢")
+    print("🟢" + f" API: /api/optimize".ljust(78) + "🟢")
+    print("🟢" + f" Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}".ljust(78) + "🟢")
+    print("🟢" * 80)
+    print("🎯 STARTING ROUTE OPTIMIZATION")
     print("🎯 STARTING ROUTE OPTIMIZATION")
     start_time = datetime.now()
     """Optimasi rute awal"""
@@ -403,6 +410,7 @@ def reset_journey():
 
 @app.route('/api/next-and-reoptimize', methods=['POST'])
 def next_place_and_reoptimize():
+    print("==============================================================================================================================")
     print("➡️ NEXT PLACE AND REOPTIMIZED")
     # ✅ Fix: Import datetime di awal
     from datetime import datetime
