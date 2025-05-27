@@ -500,6 +500,10 @@ class TourismOptimizer:
         fit_max = logbook.select("max")
         fit_min = logbook.select("min")
         fit_std = logbook.select("std")
+        
+        # ✅ TAMBAHAN: Calculate distance information
+        distance_info = self.calculate_route_distances()
+        travel_time_info = self.calculate_travel_time_info()
 
         result = {
             'route': [int(x) for x in self.current_route],
@@ -508,6 +512,9 @@ class TourismOptimizer:
             'total_cost': int(sum(self.df_places.iloc[id-1]['entrance_fee'] for id in self.current_route)),
             'crossover_method': crossover_method,  # Info crossover yang digunakan,
             'algorithm': algorithm,
+            # ✅ TAMBAHAN: Distance and travel time information
+            'distance_info': distance_info,
+            'travel_time_info': travel_time_info,
             'evolution_stats': {
                 'generations': len(gen),
                 'final_avg_fitness': float(fit_avg[-1]),
@@ -577,11 +584,28 @@ class TourismOptimizer:
             }
         
         # Update budget
+        # Update budget
         used_budget = sum(self.df_places.iloc[place_id - 1]['entrance_fee'] for place_id in visited_places)
         new_preferences['budget'] = self.preferences['budget'] - used_budget
-        new_preferences['max_places'] = self.preferences['max_places'] - len(visited_places)
         
+        # ✅ TAMBAH DEBUG PRINT:
+        print(f"🔍 DEBUG budget calculation:")
+        print(f"   Original budget: Rp{self.preferences['budget']:,}")
+        print(f"   Used budget: Rp{used_budget:,}")
+        print(f"   Remaining budget: Rp{new_preferences['budget']:,}")
+
+        remaining_places_count = len(self.current_route) - len(visited_places)
+        new_preferences['max_places'] = remaining_places_count        
         # Reoptimize if there are still places to visit
+        # ✅ TAMBAH DEBUG PRINT:
+        print(f"🔍 DEBUG max_places calculation:")
+        print(f"   Original max_places: {self.preferences['max_places']}")
+        print(f"   Current route length: {len(self.current_route)}")
+        print(f"   Visited places count: {len(visited_places)}")
+        print(f"   Remaining places count: {remaining_places_count}")
+        print(f"   New max_places: {new_preferences['max_places']}")
+
+        distance_info = self.calculate_route_distances()
         if new_preferences['max_places'] > 0 and new_preferences['budget'] > 0:
             # Reset DEAP creators
             if 'FitnessMax' in dir(creator):
@@ -589,6 +613,9 @@ class TourismOptimizer:
                 del creator.Individual
                 
             print(f"🔄 Reoptimizing with {crossover_method} crossover and {algorithm} algorithm...")
+            print(f"✅ GA will be executed:")
+            print(f"   Places to reoptimize: {new_preferences['max_places']}")
+            print(f"   Budget available: Rp{new_preferences['budget']:,}")
             result = self.optimize_route_with_crossover_choice(
                 new_preferences, 
                 crossover_method=crossover_method,
@@ -613,7 +640,9 @@ class TourismOptimizer:
 
             # ✅ Get comparison with previous route
             route_comparison = self.compare_with_previous()
+            # ✅ TAMBAHAN: Calculate distance for reoptimized route
             
+            travel_time_info = self.calculate_travel_time_info()
             result_data = {
                 'success': True,
                 'crossover_used': crossover_method,
@@ -640,6 +669,9 @@ class TourismOptimizer:
                 # ✅ TAMBAHAN: Previous route info
                 'previous_route': route_comparison.get('previous_route'),
                 'route_changes': route_comparison.get('changes'),
+                # ✅ TAMBAHAN: Distance and travel time information
+                'distance_info': distance_info,
+                'travel_time_info': travel_time_info,
                 'message': f"Rute berhasil dioptimasi ulang menggunakan {crossover_method} crossover dan {algorithm} algorithm"
             }
         else:
@@ -675,10 +707,128 @@ class TourismOptimizer:
                 # ✅ TAMBAHAN: Previous route info (even if no reoptimization)
                 'previous_route': route_comparison.get('previous_route'),
                 'route_changes': route_comparison.get('changes'),
+                'distance_info': distance_info,
                 'message': f"Tidak ada tempat lagi untuk dioptimasi"
             }
 
         return self.convert_to_json_serializable(result_data)
+
+    def calculate_route_distances(self):
+        """
+        Calculate comprehensive distance information for current route
+        """
+        if not self.current_route or not self.preferences:
+            return {
+                'total_distance_km': 0,
+                'distance_breakdown': [],
+                'cumulative_distance': [0]
+            }
+        
+        import geopy.distance as geodist
+        
+        distances = []
+        cumulative = [0]
+        total_distance = 0
+        
+        # Distance from start location to first place
+        if self.current_route:
+            start_loc = (self.preferences['start_location']['latitude'], 
+                        self.preferences['start_location']['longitude'])
+            first_place = self.df_places.iloc[self.current_route[0]-1]
+            first_loc = (first_place['latitude'], first_place['longitude'])
+            
+            start_distance = geodist.distance(start_loc, first_loc).km
+            distances.append({
+                'from': self.preferences['start_location']['name'],
+                'to': first_place['name'],
+                'distance_km': round(float(start_distance), 2),
+                'leg_number': 0
+            })
+            total_distance += start_distance
+            cumulative.append(round(float(total_distance), 2))
+        
+        # Distance between places in route
+        for i in range(len(self.current_route) - 1):
+            place1 = self.df_places.iloc[self.current_route[i]-1]
+            place2 = self.df_places.iloc[self.current_route[i+1]-1]
+            
+            loc1 = (place1['latitude'], place1['longitude'])
+            loc2 = (place2['latitude'], place2['longitude'])
+            
+            distance = geodist.distance(loc1, loc2).km
+            distances.append({
+                'from': place1['name'],
+                'to': place2['name'],
+                'distance_km': round(float(distance), 2),
+                'leg_number': i + 1
+            })
+            
+            total_distance += distance
+            cumulative.append(round(float(total_distance), 2))
+        
+        # Distance from last place back to end location
+        if self.current_route:
+            last_place = self.df_places.iloc[self.current_route[-1]-1]
+            end_loc = (self.preferences['end_location']['latitude'], 
+                    self.preferences['end_location']['longitude'])
+            last_loc = (last_place['latitude'], last_place['longitude'])
+            
+            end_distance = geodist.distance(last_loc, end_loc).km
+            distances.append({
+                'from': last_place['name'],
+                'to': self.preferences['end_location']['name'],
+                'distance_km': round(float(end_distance), 2),
+                'leg_number': len(self.current_route)
+            })
+            total_distance += end_distance
+            cumulative.append(round(float(total_distance), 2))
+        
+        return {
+            'total_distance_km': round(float(total_distance), 2),
+            'average_distance_per_leg': round(float(total_distance / len(distances)), 2) if distances else 0,
+            'number_of_legs': len(distances),
+            'distance_breakdown': distances,
+            'cumulative_distance_km': cumulative,
+            'longest_leg': max(distances, key=lambda x: x['distance_km']) if distances else None,
+            'shortest_leg': min(distances, key=lambda x: x['distance_km']) if distances else None
+        }
+    def calculate_travel_time_info(self):
+        """
+        Calculate travel time information based on distances and traffic
+        """
+        distance_info = self.calculate_route_distances()
+        
+        if not distance_info['distance_breakdown']:
+            return {'total_travel_time_minutes': 0, 'travel_time_breakdown': []}
+        
+        travel_times = []
+        total_time = 0
+        
+        for leg in distance_info['distance_breakdown']:
+            # Base travel time (40 km/h average speed)
+            base_time = (leg['distance_km'] / 40) * 60  # minutes
+            
+            # Apply traffic factor (simplified)
+            traffic_factor = 1.2  # Can be made dynamic based on time/day
+            actual_time = base_time * traffic_factor
+            
+            travel_times.append({
+                'from': leg['from'],
+                'to': leg['to'],
+                'distance_km': leg['distance_km'],
+                'base_travel_time_minutes': round(base_time, 1),
+                'actual_travel_time_minutes': round(actual_time, 1),
+                'traffic_factor': traffic_factor,
+                'leg_number': leg['leg_number']
+            })
+            
+            total_time += actual_time
+        
+        return {
+            'total_travel_time_minutes': round(total_time, 1),
+            'total_travel_time_hours': round(total_time / 60, 2),
+            'travel_time_breakdown': travel_times
+        }
 
     def optimize_route(self, preferences_data=None, verbose=True):
         self.preferences = self.create_user_preferences(preferences_data)
@@ -697,7 +847,13 @@ class TourismOptimizer:
         def init_individual():
             individual = self.preferences['must_visit'].copy()
             potential_places = [i for i in range(1, len(self.df_places)+1)
-                               if i not in individual and i not in self.preferences['avoid_places']]
+                           if i not in individual and i not in self.preferences['avoid_places']]
+
+            # ✅ TAMBAHKAN DEBUG PRINT DI SINI:
+            print(f"🔍 DEBUG init_individual:")
+            print(f"   must_visit: {self.preferences['must_visit']}")
+            print(f"   potential_places range: 1 to {len(self.df_places)}")
+            print(f"   potential_places: {potential_places[:10]}...")  # Show first 10
 
             random.shuffle(potential_places)
             current_budget = sum(self.df_places.iloc[p-1]['entrance_fee'] for p in individual)
@@ -712,6 +868,11 @@ class TourismOptimizer:
                     current_budget += fee
 
             random.shuffle(individual)
+
+            # ✅ TAMBAHKAN DEBUG PRINT DI SINI:
+            print(f"   final individual: {individual}")
+            print(f"   individual min: {min(individual) if individual else 'empty'}")
+            print(f"   individual max: {max(individual) if individual else 'empty'}")
             return individual
 
         toolbox.register("individual", tools.initIterate, creator.Individual, init_individual)
@@ -900,7 +1061,20 @@ class TourismOptimizer:
                 }
             }
         }
-    
+
+        # ✅ TAMBAHKAN DEBUG PRINT DI SINI:
+        print(f"🔍 DEBUG final result:")
+        print(f"   current_route: {self.current_route}")
+        print(f"   route min: {min(self.current_route) if self.current_route else 'empty'}")
+        print(f"   route max: {max(self.current_route) if self.current_route else 'empty'}")
+        print(f"   result['route']: {result['route']}")
+        
+        # Check for invalid IDs
+        invalid_ids = [id for id in self.current_route if id < 1 or id > 15]
+        if invalid_ids:
+            print(f"   ❌ INVALID IDs found: {invalid_ids}")
+        else:
+            print(f"   ✅ All IDs valid (1-15)")    
         return self.convert_to_json_serializable(result)
     
 
@@ -1210,7 +1384,7 @@ class TourismOptimizer:
 
             schedule.append({
                 'location': self.preferences['end_location']['name'],
-                'activity': 'Kembali ke hotel',
+                'activity': 'Kembali ke '+ self.preferences['end_location']['name'],
                 'time': current_time.strftime('%H:%M'),
                 'type': 'return'
             })

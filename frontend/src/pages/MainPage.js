@@ -13,7 +13,10 @@ const MainPage = ({ setCurrentPage, mainData, setMainData, mainConfig, loading, 
   const [positionIndex, setPositionIndex] = useState(0);
 
   const [userLocation, setUserLocation] = useState([0, 0]);
-
+  const [distanceinfoData, setDistanceInfo] = useState(null);
+  const [budgetData, setBudgetData] = useState(null);
+  const [userPreferenceData, setUserPreferenceData] = useState(null)
+  const [triger, setTriger] = useState(0)
   useEffect(() => {
     getUserLocation();
     fetchTripData();
@@ -22,15 +25,27 @@ const MainPage = ({ setCurrentPage, mainData, setMainData, mainConfig, loading, 
   useEffect(() => {
     if (mainData) {
       setScheduleData(mainData.schedule);
+      // console.log("place "+placesData)
       setRouteData(mainData.route);
+      setDistanceInfo(mainData.distance_info);
+      setBudgetData({
+        remaining_budget : mainData.used_preferences.budget,
+        total_budget : 0,
+        used_budget : mainData.used_preferences.budget
+      });
+      setUserPreferenceData(mainData.used_preferences
+)
     }
   }, [mainData]);
-
+  // console.log("distanceinfo"+distanceinfoData.total_distance_km)
   useEffect(() => {
     if (reoptimizeData) {
       setScheduleData(reoptimizeData.step2_reoptimize.schedule);
       setRouteData(reoptimizeData.step2_reoptimize.route_ids);
       setPositionIndex(reoptimizeData.summary.new_position);
+      setDistanceInfo(reoptimizeData.step2_reoptimize.distance_info)
+      setBudgetData(reoptimizeData.step2_reoptimize.budget_info)
+      setTriger(1)
     }
   }, [reoptimizeData]);
 
@@ -191,6 +206,7 @@ const MainPage = ({ setCurrentPage, mainData, setMainData, mainConfig, loading, 
           <div className="flex flex-row items-center space-x-3">
             <div className="w-1/2 flex flex-col">
               <div className="text-xs">Current location</div>
+              {/* {(triger == 0) ? <div className="font-semibold text-xs">{userPreferenceData?.start_location?.name}</div> : <div className="font-semibold text-xs">{ placesData?.[(routeData?.[positionIndex] ?? 0) - 1]?.name ?? '' }</div>} */}
               <div className="font-semibold text-xs">{ placesData?.[(routeData?.[positionIndex] ?? 0) - 1]?.name ?? '' }</div>
             </div>
             {/* <div className="w-1/4 flex flex-col">
@@ -198,13 +214,15 @@ const MainPage = ({ setCurrentPage, mainData, setMainData, mainConfig, loading, 
               <div className="font-semibold text-xs">15000</div>
             </div> */}
             <div className="w-1/4 flex flex-col">
-              <div className="text-xs">Scheduled</div>
-              <div className="font-semibold text-xs">10:00 AM</div>
+              <div className="text-xs">Total Distance</div>
+              <div className="font-semibold text-xs">{distanceinfoData?.total_distance_km} Km</div>
             </div>
           </div>
           <div className="flex flex-row items-center space-x-3">
             <div className="w-1/2 flex flex-col">
               <div className="text-xs">Next destination</div>
+              {/* {(triger == 0) ? <div className="font-semibold text-xs">{ (positionIndex >= (routeData?.length ?? 0)) ? '-' : placesData?.[(routeData?.[positionIndex] ?? 0) - 1]?.name ?? '' }</div> :
+              <div className="font-semibold text-xs">{ (positionIndex + 1 >= (routeData?.length ?? 0)) ? '-' : placesData?.[(routeData?.[positionIndex + 1] ?? 0) - 1]?.name ?? '' }</div>} */}
               <div className="font-semibold text-xs">{ (positionIndex + 1 >= (routeData?.length ?? 0)) ? '-' : placesData?.[(routeData?.[positionIndex + 1] ?? 0) - 1]?.name ?? '' }</div>
             </div>
             {/* <div className="w-1/4 flex flex-col">
@@ -212,8 +230,8 @@ const MainPage = ({ setCurrentPage, mainData, setMainData, mainConfig, loading, 
               <div className="font-semibold text-xs">15000</div>
             </div> */}
             <div className="w-1/4 flex flex-col">
-              <div className="text-xs">Scheduled</div>
-              <div className="font-semibold text-xs">10:00 AM</div>
+              <div className="text-xs">Budget Saat Ini</div>
+              <div className="font-semibold text-xs">{(budgetData) ? budgetData.remaining_budget : ""}</div>
             </div>
           </div>
         </div>
@@ -223,7 +241,7 @@ const MainPage = ({ setCurrentPage, mainData, setMainData, mainConfig, loading, 
         </div>
       </div>
       <div className="mt-6 px-4 py-4 w-full bg-white shadow-lg rounded-lg">
-        <div className="font-bold text-md tracking-tight">Full Trip Schedule</div>
+        <div className="font-bold text-md tracking-tight">Full Trip Schedule With GA</div>
         <table className="mt-3 w-full">
           <thead className="!text-xs font-medium">
             <tr>

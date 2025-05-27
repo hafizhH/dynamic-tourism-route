@@ -107,7 +107,7 @@ def optimize_route():
     try:
         data = request.get_json() or {}
         preferences = data.get('preferences', {})
-        
+        print(preferences)
         crossover_method = data.get('crossover_method', 'original')
         algorithm = data.get('algorithm', 'simple')
 

@@ -90,17 +90,32 @@ const StartPage = ({ setCurrentPage, mainData, setMainData, setMainConfig, loadi
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        start_time: startTime,
-        end_time: endTime,
-        lunch_time: lunchTime,
-        start_location: startLocation,
-        max_places: maxPlaces,
-        must_visit: mustVisit.filter(place => place !== ''),
-        budget: budget,
-        preferred_categories: preferredCategories.filter(cat => cat !== ''),
-        crossover_method: crossover,
-        algorithm: algorithm,
+      // body: JSON.stringify({
+      //   start_time: startTime,
+      //   end_time: endTime,
+      //   lunch_time: lunchTime,
+      //   start_location: startLocation,
+      //   max_places: maxPlaces,
+      //   must_visit: mustVisit.filter(place => place !== ''),
+      //   budget: budget,
+      //   preferred_categories: preferredCategories.filter(cat => cat !== ''),
+      //   crossover_method: crossover,
+      //   algorithm: algorithm,
+      // }),
+      body: JSON.stringify(
+      {
+        "preferences": {
+          "start_time": startTime,
+          "end_time": endTime,
+          "max_places": maxPlaces,
+          "budget": budget,
+          "must_visit": mustVisit.filter(place => place !== ''),
+          "lunch_time": lunchTime,
+          "start_location" : startLocation,
+          "preferred_categories": preferredCategories.filter(cat => cat !== ''),
+        },
+        "crossover_method": crossover,
+        "algorithm": algorithm
       }),
     })
       .then(async response => {
@@ -109,6 +124,7 @@ const StartPage = ({ setCurrentPage, mainData, setMainData, setMainConfig, loadi
         return parsedJson;
       })
       .then(data => {
+        console.log(startLocation)
         console.log('Optimization result:', data.data);
         setMainData(data.data);
         setCurrentPage(1);
@@ -158,12 +174,12 @@ const StartPage = ({ setCurrentPage, mainData, setMainData, setMainConfig, loadi
                 className="px-1 py-2 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 placeholder="Start time"
               />
-              <span className="mx-2 self-center text-sm text-gray-500">to</span>
+              {/* <span className="mx-2 self-center text-sm text-gray-500">to</span>
               <input onChange={(e) => setEndTime(e.target.value)}
                 type="time" defaultValue={defaultParams.endTime}
                 className="px-1 py-2 text-sm border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 placeholder="End time"
-              />
+              /> */}
             </div>
           </div>
           <div className="ml-auto w-fit flex flex-col">
@@ -216,7 +232,7 @@ const StartPage = ({ setCurrentPage, mainData, setMainData, setMainConfig, loadi
           <div className="mt-1.5 px-3 max-h-20 border border-gray-200 rounded-md overflow-auto flex flex-wrap gap-x-3 gap-y-1.5">
             {placesData && placesData.map((place, index) => (
               <label key={place.name} className="flex items-center gap-x-1.5">
-                <input type="checkbox" value={index} className="accent-blue-500" onChange={handleMustVisitChange} />
+                <input type="checkbox" value={index + 1} className="accent-blue-500" onChange={handleMustVisitChange} />
                 <span className="text-xs">{place.name}</span>
               </label>
             ))}

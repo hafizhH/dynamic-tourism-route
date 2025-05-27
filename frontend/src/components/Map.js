@@ -60,7 +60,7 @@ const Map = ({ places, visitedPlaceIds, remainingPlaceIds, currentUserLocation }
       } */}
       { visitedPlaceIds &&
         visitedPlaceIds.map((id, idx) => {
-          const place = places[id - 1];
+          const place = places[id];
 
           if (idx === visitedPlaceIds.length - 1) {
             return (
@@ -107,8 +107,9 @@ const Map = ({ places, visitedPlaceIds, remainingPlaceIds, currentUserLocation }
       }
       { remainingPlaceIds &&
         remainingPlaceIds.map((id, idx) => {
-          const place = places[id - 1];
-
+          const place = places[id];
+          // console.log(place)
+          // console.log(id)
           return (
             <Marker key={place.id} position={[place.latitude, place.longitude]}
               icon={L.icon({
@@ -133,7 +134,7 @@ const Map = ({ places, visitedPlaceIds, remainingPlaceIds, currentUserLocation }
       }
       <Polyline color="#88a"
         positions={visitedPlaceIds.reduce((acc, id, idx, arr) => {
-          const place = places[id - 1];
+          const place = places[id];
           acc.push([place.latitude, place.longitude]);
           return acc;
         }, [])}
@@ -141,7 +142,7 @@ const Map = ({ places, visitedPlaceIds, remainingPlaceIds, currentUserLocation }
       <Polyline color="#155dfc"
         positions={[visitedPlaceIds[visitedPlaceIds.length - 1], remainingPlaceIds[0] ?? null].reduce((acc, id, idx, arr) => {
           if (id) {
-            const place = places[id - 1];
+            const place = places[id];
             acc.push([place.latitude, place.longitude]);
           }
           return acc;
@@ -150,7 +151,7 @@ const Map = ({ places, visitedPlaceIds, remainingPlaceIds, currentUserLocation }
       <Polyline color="#51a2ff"
         positions={remainingPlaceIds.reduce((acc, id, idx, arr) => {
           if (id) {
-            const place = places[id - 1];
+            const place = places[id];
             acc.push([place.latitude, place.longitude]);
           }
           return acc;
